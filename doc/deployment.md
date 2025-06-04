@@ -24,6 +24,20 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
 - Instead, restrict `iam:PassRole` to only the specific IAM roles that will be passed to AWS services (such as Lambda execution roles).
 - If you do not know the role ARNs yet (e.g., before your first deploy), you may use a wildcard temporarily for development, but **you must update the policy to use specific ARNs before production**.
 - You may need to deploy your SAM stack once to get the actual role names/ARNs (these can be exported as outputs from your SAM template), then update your policy.
+- The deployment role must also include the following permissions to allow SAM/CloudFormation to tag, untag, and read IAM roles it creates:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "iam:TagRole",
+    "iam:UntagRole",
+    "iam:GetRole"
+  ],
+  "Resource": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/*"
+}
+```
+- These permissions are required because SAM and CloudFormation automatically add tags to IAM roles for tracking and management. Without them, stack creation will fail with a permissions error when creating Lambda execution roles or other IAM resources.
 
 **Example of a restricted PassRole statement:**
 ```json
@@ -76,6 +90,8 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
         "iam:CreatePolicy",
         "iam:DeletePolicy",
         "iam:UpdateAssumeRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
         "logs:*",
         "lambda:*",
         "apigateway:*",
