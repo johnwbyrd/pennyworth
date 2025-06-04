@@ -40,6 +40,7 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --region $AWS_REGION \
             --resolve-s3 \
+            --no-fail-on-empty-changeset \
             --parameter-overrides \
               BaseDomain=$BASE_DOMAIN \
               AcmCertificateArn=$ACM_CERTIFICATE_ARN \
