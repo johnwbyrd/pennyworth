@@ -1,57 +1,64 @@
 # Project Plan: pennyworth
 
-## Project Goals
-- Provide an OpenAI-compatible API proxy for AWS Bedrock models (Claude, Titan, etc.)
-- Support secure, zero-cost-at-rest, serverless deployment on AWS (Lambda, API Gateway, DynamoDB)
-- Enable per-user (API key/account) usage and cost tracking, with future reporting and alerting
-- Integrate with modern developer tools (VS Code, Cursor, etc.)
-- Use best practices for security, observability, and maintainability
-- Minimize hard-coding; use variables and secrets for all configuration
-- **API key management is exclusively via DynamoDB; LiteLLM's built-in key management is not used.**
-- **A Python CLI tool will be provided for API key creation, auditing, and revocation, storing only hashes (never plaintext keys).**
-- **MCP protocol support is a near-term requirement for compatibility with VS Code, Cursor, and similar tools.**
+## Current Status
+- Automated, secure AWS SAM deployment pipeline is live
+- Lambda function and API Gateway endpoint deployed
+- Custom domain (e.g., https://api.uproro.com/hello) is working via Route 53 and ACM
+- GitHub Actions CI/CD with OIDC and least-privilege IAM is operational
+- Documentation and workflow are up to date
 
-## Major Phases & Deliverables
+---
 
-### 1. Architecture & Design
-- Define high-level architecture (API Gateway → Lambda (LiteLLM) → Bedrock)
-- Document security model (API key hashing, OIDC, IAM roles)
-- Specify configuration via environment variables, GitHub secrets, and repository variables
+## Next Steps & Major Tasks
 
-### 2. Deployment Automation
-- Set up GitHub Actions workflow for CI/CD using OIDC (no static AWS keys)
-- Parameterize all deployment values (region, domain, stack name, role ARN, etc.)
-- Use AWS SAM/CloudFormation for infrastructure as code
-- Automate Route 53, ACM, and API Gateway custom domain setup
+### 1. Expand SAM Template Toward Production Architecture
+- Add Cognito User Pool and Identity Pool for authentication
+- Add DynamoDB table for API key management
+- Add additional Lambda functions for OpenAI-compatible endpoints and MCP support
+- Parameterize and document all environment variables and secrets
+- Add explicit `AWS::Serverless::Api` resource for more control (if needed)
 
-### 3. API Key Management
-- Design DynamoDB schema for API keys (hashed keys, permissions, account_id, usage counters)
-- Implement secure key creation, rotation, and revocation
-- Enforce authentication and permission checks in Lambda handler
-- **Provide a Python CLI tool for API key management (create, audit, revoke) that never stores plaintext keys—only hashes.**
-- **Do not use LiteLLM's built-in API key management.**
+### 2. Build and Integrate the CLI Tool
+- Scaffold Python CLI for API key management (create, audit, revoke, rotate)
+- Integrate CLI with Cognito authentication and DynamoDB
+- Support output in both JSON and human-friendly text
+- Document CLI usage and onboarding
 
-### 4. Usage & Cost Tracking
-- Track per-call usage (tokens, model, endpoint) and associate with API key/account
-- Calculate Bedrock cost per call using token counts and pricing table
-- Publish per-user cost and usage as custom CloudWatch metrics (future: dashboards, alerts)
-- Store usage/cost data in DynamoDB for reporting and analytics
+### 3. API Gateway & Client Compatibility
+- Update API Gateway configuration for versioned paths (e.g., `/v1/hello`)
+- Set up and test custom domain with versioned endpoints
+- Ensure compatibility with VS Code, Cursor, and other clients
+- Implement and test MCP protocol support
 
-### 5. Client Integration
-- Ensure OpenAI-compatible endpoints work with VS Code, Cursor, and other clients
-- Provide example client configs and onboarding docs
-- Test streaming, large requests, and error handling
-- **Implement and test MCP protocol support for VS Code, Cursor, and other coding tools as a near-term requirement.**
+### 4. Security & IAM Hardening
+- Restrict IAM policies to least privilege for all roles
+- Replace wildcards in `iam:PassRole` and other permissions with specific ARNs
+- Regularly review and audit IAM roles and policies
+- Enable and test MFA for all admin access
 
-### 6. Monitoring & Observability
-- Log all requests, errors, and key events to CloudWatch (with sensitive data redacted)
-- Publish custom metrics for usage, cost, and errors
-- Set up dashboards and alarms for operational visibility
+### 5. Monitoring, Logging, and Observability
+- Add CloudWatch log groups, metrics, and alarms for Lambda and API Gateway
+- Set up dashboards for operational visibility
+- Implement alerting for errors, cost spikes, and suspicious activity
 
-### 7. Documentation & Onboarding
-- Write and maintain clear README.md, architecture, deployment, and security docs
-- Document all environment variables, secrets, and configuration options
+### 6. Documentation & Onboarding
+- Update and maintain deployment, architecture, and security documentation
 - Provide onboarding guide for new users and contributors
+- Document all environment variables, secrets, and configuration options
+
+### 7. Cost Tracking & Reporting
+- Track per-user and per-key usage and cost in DynamoDB
+- Publish usage and cost metrics to CloudWatch
+- Plan for future dashboards and automated reporting/alerts
+
+### 8. Future Deliverables
+- Admin UI (web-based) for API key and usage management (optional, CLI is current plan)
+- Advanced analytics and billing integration
+- Bulk key creation/import/export in CLI
+- Integration with notification systems (email, Slack)
+- More granular permission management
+
+---
 
 ## Key Principles
 - **Security:** OIDC for CI/CD, hashed API keys, least-privilege IAM, no plaintext secrets
@@ -59,12 +66,6 @@
 - **Cost Awareness:** Track and report per-user Bedrock costs as a core feature
 - **Maintainability:** Modular code, clear docs, automated tests, and CI/CD
 
-## Future Deliverables
-- Per-user cost dashboards and automated reporting/alerts
-- Admin UI or CLI for API key and usage management
-- Advanced analytics and billing integration
-- **A web-based admin UI is not a near-term goal; CLI/script-based management is the current plan.**
-
 ---
 
-This plan provides a clear roadmap for pennyworth, ensuring a secure, scalable, and cost-aware OpenAI-compatible API proxy for AWS Bedrock. 
+This plan provides a clear roadmap for pennyworth, ensuring a secure, scalable, and cost-aware OpenAI-compatible API proxy for AWS Bedrock and modern developer tools. 
