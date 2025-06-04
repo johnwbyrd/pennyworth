@@ -21,6 +21,8 @@
 ### 3. DynamoDB (API Key Store)
 - **Role:** Persistent, scalable storage for API key metadata and permissions
 - **Security Note:** Only a secure hash (e.g., SHA-256) of each API key is stored—never the key itself. This ensures that even if the database is compromised, the actual keys remain secret.
+- **API key management is exclusively handled via DynamoDB; LiteLLM's built-in key management is not used.**
+- **A Python CLI tool is used for API key creation, auditing, and revocation, and only hashes are ever stored.**
 - **Responsibilities:**
   - Stores API key hashes and their status (active, revoked, etc.)
   - Supports dynamic key management (add, revoke, rotate)
@@ -40,6 +42,7 @@
   - Send requests to the API Gateway endpoint
   - Authenticate using API keys
   - Handle streaming and large responses as needed
+  - **MCP protocol support is a near-term requirement for compatibility with VS Code, Cursor, and similar tools.**
 
 ### 6. (Optional) S3
 - **Role:** Storage for large input files (if needed)
@@ -104,4 +107,7 @@ Clients ──> API Gateway ──> Lambda (LiteLLM) ──> [Bedrock/OpenAI/etc
 
 ---
 
-This overview captures the main moving pieces, their responsibilities, and how they interact to provide a secure, scalable, and OpenAI-compatible API proxy for modern developer tools. API key security is maintained by never storing plaintext keys on the server or in the database. 
+This overview captures the main moving pieces, their responsibilities, and how they interact to provide a secure, scalable, and OpenAI-compatible API proxy for modern developer tools. API key security is maintained by never storing plaintext keys on the server or in the database.
+
+## Optional Extensions
+- **MCP Protocol Support:** If required, a thin Lambda or container can be added to handle MCP endpoints and route to LiteLLM or directly to LLMs. **(Note: MCP support is now a near-term requirement, not just optional.)** 

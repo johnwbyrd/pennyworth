@@ -10,7 +10,7 @@ This project provides an OpenAI-compatible API proxy, powered by [LiteLLM](https
 
 - **API Gateway**: Receives HTTP requests from clients (OpenAI API or MCP protocol)
 - **AWS Lambda (LiteLLM)**: Handles all API logic, model routing, and authentication
-- **DynamoDB (optional)**: Stores API keys, usage data, or session state if needed
+- **DynamoDB (required)**: Stores API keys, usage data, or session state if needed. **API key management is exclusively via DynamoDB; LiteLLM's built-in key management is not used.**
 - **CloudWatch**: Logging and metrics
 
 ## Key Design Principles
@@ -18,7 +18,7 @@ This project provides an OpenAI-compatible API proxy, powered by [LiteLLM](https
 - **OpenAI API Compatibility**: All endpoints and request/response formats match OpenAI's API, enabling drop-in use with existing clients.
 - **Multi-LLM Support**: LiteLLM routes requests to AWS Bedrock, OpenAI, or other providers based on configuration.
 - **Serverless/Zero-Cost-At-Rest**: No compute costs when idle; all resources are on-demand.
-- **Simple Auth**: API key authentication (managed by LiteLLM or DynamoDB).
+- **Simple Auth**: API key authentication (managed by DynamoDB and the CLI tool; do not use LiteLLM's built-in key management).
 
 ## Handling Long-Running and Large Requests
 
@@ -41,10 +41,12 @@ This project provides an OpenAI-compatible API proxy, powered by [LiteLLM](https
 - **Extensibility**: Easy to add new LLM providers or custom logic as needed.
 
 ## Optional Extensions
-- **MCP Protocol Support**: If required, a thin Lambda or container can be added to handle MCP endpoints and route to LiteLLM or directly to LLMs.
+- **MCP Protocol Support**: If required, a thin Lambda or container can be added to handle MCP endpoints and route to LiteLLM or directly to LLMs. **(Note: MCP support is now a near-term requirement, not just optional.)**
 - **Custom Usage Tracking**: Use DynamoDB or CloudWatch for per-user/model usage and cost tracking.
 - **API Key Management**: Use DynamoDB for custom API key storage, or rely on LiteLLM's built-in support.
 
 ---
 
 This architecture is designed to be robust, cost-effective, and easy to maintain, while supporting advanced use cases for developer productivity tools. 
+
+**A Python CLI tool is used for API key creation, auditing, and revocation, and only hashes are ever stored.** 

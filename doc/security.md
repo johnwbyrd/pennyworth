@@ -3,7 +3,7 @@
 ## API Key Management (DynamoDB)
 
 ### Overview
-API keys are used to authenticate and authorize access to the OpenAI-compatible API proxy. **Only a secure hash (e.g., SHA-256) of each API key is stored in DynamoDB—never the key itself.** This ensures that even if the database is compromised, the actual keys remain secret.
+API keys are used to authenticate and authorize access to the OpenAI-compatible API proxy. **Only a secure hash (e.g., SHA-256) of each API key is stored in DynamoDB—never the key itself.** This ensures that even if the database is compromised, the actual keys remain secret. **API key management is exclusively via DynamoDB; LiteLLM's built-in key management is not used.** **A Python CLI tool is used for API key creation, auditing, and revocation, and only hashes are ever stored.**
 
 ### DynamoDB Table Design
 - **Table Name:** `api-keys` (or configurable)
@@ -72,6 +72,7 @@ API keys are used to authenticate and authorize access to the OpenAI-compatible 
 - Use AWS IAM best practices (least privilege, role separation)
 - Regularly review and audit permissions and access logs
 - Consider enabling AWS WAF for API Gateway for additional protection
+- **MCP protocol support is a near-term requirement for compatibility with VS Code, Cursor, and similar tools.**
 
 ## Debugging and Monitoring
 - **CloudWatch Logs:** All Lambda logs (including errors, print/console.log statements, and stack traces) are available in AWS Console → CloudWatch → Logs.

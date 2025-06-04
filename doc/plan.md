@@ -7,6 +7,9 @@
 - Integrate with modern developer tools (VS Code, Cursor, etc.)
 - Use best practices for security, observability, and maintainability
 - Minimize hard-coding; use variables and secrets for all configuration
+- **API key management is exclusively via DynamoDB; LiteLLM's built-in key management is not used.**
+- **A Python CLI tool will be provided for API key creation, auditing, and revocation, storing only hashes (never plaintext keys).**
+- **MCP protocol support is a near-term requirement for compatibility with VS Code, Cursor, and similar tools.**
 
 ## Major Phases & Deliverables
 
@@ -25,6 +28,8 @@
 - Design DynamoDB schema for API keys (hashed keys, permissions, account_id, usage counters)
 - Implement secure key creation, rotation, and revocation
 - Enforce authentication and permission checks in Lambda handler
+- **Provide a Python CLI tool for API key management (create, audit, revoke) that never stores plaintext keys—only hashes.**
+- **Do not use LiteLLM's built-in API key management.**
 
 ### 4. Usage & Cost Tracking
 - Track per-call usage (tokens, model, endpoint) and associate with API key/account
@@ -36,6 +41,7 @@
 - Ensure OpenAI-compatible endpoints work with VS Code, Cursor, and other clients
 - Provide example client configs and onboarding docs
 - Test streaming, large requests, and error handling
+- **Implement and test MCP protocol support for VS Code, Cursor, and other coding tools as a near-term requirement.**
 
 ### 6. Monitoring & Observability
 - Log all requests, errors, and key events to CloudWatch (with sensitive data redacted)
@@ -57,6 +63,7 @@
 - Per-user cost dashboards and automated reporting/alerts
 - Admin UI or CLI for API key and usage management
 - Advanced analytics and billing integration
+- **A web-based admin UI is not a near-term goal; CLI/script-based management is the current plan.**
 
 ---
 
