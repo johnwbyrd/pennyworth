@@ -1,7 +1,7 @@
 # pennyworth
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Build Status](https://github.com/<your-org-or-username>/pennyworth/actions/workflows/deploy.yml/badge.svg)](https://github.com/<your-org-or-username>/pennyworth/actions)
+[![Build Status](https://github.com/johnwbyrd/pennyworth/actions/workflows/deploy.yml/badge.svg)](https://github.com/johnwbyrd/pennyworth/actions)
 [![AWS Ready](https://img.shields.io/badge/AWS-Ready-orange?logo=amazon-aws)](https://aws.amazon.com/)
 [![AWS SAM](https://img.shields.io/badge/AWS-SAM-blue?logo=amazon-aws)](https://aws.amazon.com/serverless/sam/)
 
