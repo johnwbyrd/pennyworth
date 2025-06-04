@@ -97,16 +97,17 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
         "lambda:*",
         "apigateway:*",
         "s3:*",
-        "route53:GetHostedZone"
+        "route53:GetHostedZone",
+        "route53:ChangeResourceRecordSets",
+        "route53:ListHostedZones"
       ],
       "Resource": "*"
     }
   ]
 }
 ```
-- **Note:** `iam:CreateServiceLinkedRole` is required for CloudFormation/SAM to create the service-linked role that API Gateway needs to manage custom domains. Without it, stack creation will fail with a permissions error when creating the custom domain for the first time in an account/region.
+- **Note:** The Route 53 permissions (`route53:GetHostedZone`, `route53:ChangeResourceRecordSets`, and `route53:ListHostedZones`) are required for CloudFormation/SAM to look up your hosted zone and create or manage DNS records for your custom domain. Without them, stack creation will fail with a permissions error when creating DNS records for your custom domain.
 - **Replace the wildcard in `iam:PassRole` with specific ARNs as soon as you know them.**
-- **Note:** `route53:GetHostedZone` is required for CloudFormation/SAM to look up your hosted zone when creating Route 53 DNS records. Without it, stack creation will fail with a permissions error when creating DNS records for your custom domain.
 
 ### 2. Create an IAM Role for GitHub OIDC
 - Go to the AWS IAM Console → Roles → Create role
