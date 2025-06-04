@@ -7,11 +7,11 @@ on:
       - main
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  BASE_DOMAIN: ${{ secrets.BASE_DOMAIN }}
   ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
   AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-  STACK_NAME: ${{ vars.STACK_NAME }}
+  STACK_NAME: ${{ secrets.STACK_NAME }}
 
 jobs:
   deploy:

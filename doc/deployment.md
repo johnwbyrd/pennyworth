@@ -144,14 +144,22 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
 - Add a new **Repository Secret**:
   - Name: `ROUTE53_HOSTED_ZONE_ID`
   - Value: (the Route 53 Hosted Zone ID for your base domain, e.g., `Z1234567890ABC`)
-- Add a new **Repository Variable**:
+- Add a new **Repository Secret**:
   - Name: `STACK_NAME`
   - Value: (your chosen stack name, e.g., `uproro-prod`)
+- Add a new **Repository Secret**:
+  - Name: `AWS_REGION`
+  - Value: (your deployment region, e.g., `us-west-2`)
+- Add a new **Repository Secret**:
+  - Name: `BASE_DOMAIN`
+  - Value: (your base domain, e.g., `uproro.com`)
+
+> **Note:** All deployment configuration values are set as repository secrets for maximum security and to avoid accidental exposure. Do not use repository variables for these values.
 
 ### 5. Configure GitHub Actions to Use the Deploy Role
 - In your workflow YAML, use the `aws-actions/configure-aws-credentials` action with `role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}`.
-- Set the stack name dynamically from the repository variable `${{ vars.STACK_NAME }}`.
-- **All other configuration (stack name, resource names, etc.) should use variables or parameters, not hard-coded project names.**
+- Set the stack name, region, base domain, and hosted zone ID from repository secrets `${{ secrets.STACK_NAME }}`, `${{ secrets.AWS_REGION }}`, `${{ secrets.BASE_DOMAIN }}`, and `${{ secrets.ROUTE53_HOSTED_ZONE_ID }}`.
+- **All other configuration (stack name, resource names, etc.) should use secrets or parameters, not hard-coded project names or repository variables.**
 
 > **Note:** The full GitHub Actions workflow YAML for deployment is located at `.github/workflows/deploy.yml`. Please refer to that file for the latest pipeline configuration and environment variable usage.
 
