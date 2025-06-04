@@ -38,6 +38,7 @@ jobs:
           sam deploy --stack-name $STACK_NAME \
             --capabilities CAPABILITY_IAM \
             --region $AWS_REGION \
+            --resolve-s3 \
             --parameter-overrides \
               DomainName=api.${BASE_DOMAIN} \
               HostedZoneId=$ROUTE53_HOSTED_ZONE_ID 
