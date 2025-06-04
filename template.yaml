@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: app.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.11
       CodeUri: hello_world/
       Description: A simple Hello World Lambda function
       MemorySize: 128
