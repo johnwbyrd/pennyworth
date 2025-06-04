@@ -269,7 +269,95 @@ This policy should be used for production deployments. It is tightly scoped to o
 
 **Rationale for each permission is provided in comments above.**
 
----
+## Stack-Based Resource Management
+
+### Resource Tagging Strategy
+
+All resources in the Pennyworth stack are tagged with a consistent set of tags to enable:
+- Resource organization and discovery
+- Cost allocation and tracking
+- Access control
+- Automation and maintenance
+- Environment management
+- Stack-level resource grouping
+
+The standard tag set includes:
+- `Project: Pennyworth`
+- `Environment: !Ref Environment`
+- `StackName: !Ref AWS::StackName`
+- `Component: <ComponentType>` (e.g., Authentication, APIKeys, APIProxy)
+
+### Stack-Based IAM Policies
+
+The stack name and tags can be used to create more granular IAM policies that:
+1. **Isolate Resources**: Restrict access to resources within specific stacks
+2. **Control Cross-Stack Access**: Manage access between different Pennyworth deployments
+3. **Enforce Environment Separation**: Prevent accidental modifications to production resources
+4. **Enable Component-Level Access**: Grant permissions based on resource components
+
+Example policy patterns:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "dynamodb:*",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "aws:ResourceTag/StackName": "pennyworth-prod",
+                    "aws:ResourceTag/Component": "APIKeys"
+                }
+            }
+        }
+    ]
+}
+```
+
+### Best Practices for Stack-Based Access Control
+
+1. **Stack Isolation**
+   - Use stack name in resource ARNs
+   - Tag all resources with stack name
+   - Restrict cross-stack access
+
+2. **Environment Separation**
+   - Use environment-specific stack names
+   - Enforce strict prod/dev separation
+   - Prevent accidental cross-environment access
+
+3. **Component-Based Access**
+   - Tag resources by component type
+   - Create component-specific policies
+   - Enable fine-grained access control
+
+4. **Audit and Compliance**
+   - Track resource access by stack
+   - Monitor cross-stack operations
+   - Maintain access logs
+
+### Implementation Notes
+
+1. **Resource Naming**
+   - Use stack name in resource names
+   - Follow consistent naming patterns
+   - Enable easy resource identification
+
+2. **Policy Management**
+   - Create stack-specific policies
+   - Use tag-based conditions
+   - Regular policy reviews
+
+3. **Access Patterns**
+   - Define clear access boundaries
+   - Document cross-stack requirements
+   - Monitor access patterns
+
+4. **Maintenance**
+   - Regular tag audits
+   - Policy compliance checks
+   - Access pattern reviews
 
 ## GitHub Actions Workflow
 

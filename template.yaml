@@ -37,7 +37,6 @@ Resources:
   PennyworthUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Sub ${AWS::StackName}-user-pool
       AutoVerifiedAttributes:
         - email
       Policies:
@@ -58,33 +57,57 @@ Resources:
           Mutable: true
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: true
+      Tags:
+        - Key: Project
+          Value: Pennyworth
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Component
+          Value: Authentication
 
   # Cognito User Pool Client for CLI authentication
   PennyworthUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
       UserPoolId: !Ref PennyworthUserPool
-      ClientName: !Sub ${AWS::StackName}-cli-client
       GenerateSecret: true
       ExplicitAuthFlows:
         - ADMIN_USER_PASSWORD_AUTH
         - ADMIN_NO_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
+      Tags:
+        - Key: Project
+          Value: Pennyworth
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Component
+          Value: Authentication
 
   # Cognito Identity Pool for temporary AWS credentials
   PennyworthIdentityPool:
     Type: AWS::Cognito::IdentityPool
     Properties:
-      IdentityPoolName: !Sub ${AWS::StackName}-identity-pool
       CognitoIdentityProviders:
         - ClientId: !Ref PennyworthUserPoolClient
           ProviderName: !GetAtt PennyworthUserPool.ProviderName
+      Tags:
+        - Key: Project
+          Value: Pennyworth
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Component
+          Value: Authentication
 
   # IAM Role for authenticated users (CLI access)
   PennyworthAdminRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub ${AWS::StackName}-admin-role
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -111,6 +134,15 @@ Resources:
                   - dynamodb:Query
                   - dynamodb:Scan
                 Resource: !GetAtt ApiKeysTable.Arn
+      Tags:
+        - Key: Project
+          Value: Pennyworth
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Component
+          Value: Authentication
 
   # Role attachment for Identity Pool
   IdentityPoolRoleAttachment:
@@ -124,7 +156,6 @@ Resources:
   ApiKeysTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub ${AWS::StackName}-api-keys
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: api_key_hash
@@ -145,6 +176,15 @@ Resources:
         PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
+      Tags:
+        - Key: Project
+          Value: Pennyworth
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Component
+          Value: APIKeys
 
   # Lambda function for LiteLLM proxy
   LiteLLMProxyFunction:
@@ -181,6 +221,11 @@ Resources:
           Properties:
             Path: /mcp/{proxy+}
             Method: any
+      Tags:
+        Project: Pennyworth
+        Environment: !Ref Environment
+        StackName: !Ref AWS::StackName
+        Component: APIProxy
 
   # CloudWatch Log Group for Lambda
   LiteLLMProxyLogGroup:
@@ -188,8 +233,13 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${LiteLLMProxyFunction}
       RetentionInDays: 7
+      Tags:
+        Project: Pennyworth
+        Environment: !Ref Environment
+        StackName: !Ref AWS::StackName
+        Component: Logging
 
-  # API Gateway custom domain (existing)
+  # API Gateway custom domain
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
     Properties:
@@ -197,6 +247,11 @@ Resources:
       RegionalCertificateArn: !Ref AcmCertificateArn
       EndpointConfiguration:
         Types: [REGIONAL]
+      Tags:
+        Project: Pennyworth
+        Environment: !Ref Environment
+        StackName: !Ref AWS::StackName
+        Component: API
 
   ApiBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
@@ -205,6 +260,13 @@ Resources:
       DomainName: !Ref ApiCustomDomain
       RestApiId: !Ref ServerlessRestApi
       Stage: Prod
+      Tags:
+        - Key: Project
+          Value: Pennyworth
+        - Key: Environment
+          Value: !Ref Environment
+        - StackName: !Ref AWS::StackName
+        - Component: API
 
   ApiCustomDomainRecord:
     Type: AWS::Route53::RecordSet
@@ -215,6 +277,13 @@ Resources:
       AliasTarget:
         DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
         HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
+      Tags:
+        - Key: Project
+          Value: Pennyworth
+        - Key: Environment
+          Value: !Ref Environment
+        - StackName: !Ref AWS::StackName
+        - Component: API
 
 Outputs:
   # Cognito User Pool ID
