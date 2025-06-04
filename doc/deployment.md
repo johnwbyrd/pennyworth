@@ -96,7 +96,8 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
         "logs:*",
         "lambda:*",
         "apigateway:*",
-        "s3:*"
+        "s3:*",
+        "route53:GetHostedZone"
       ],
       "Resource": "*"
     }
@@ -105,6 +106,7 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
 ```
 - **Note:** `iam:CreateServiceLinkedRole` is required for CloudFormation/SAM to create the service-linked role that API Gateway needs to manage custom domains. Without it, stack creation will fail with a permissions error when creating the custom domain for the first time in an account/region.
 - **Replace the wildcard in `iam:PassRole` with specific ARNs as soon as you know them.**
+- **Note:** `route53:GetHostedZone` is required for CloudFormation/SAM to look up your hosted zone when creating Route 53 DNS records. Without it, stack creation will fail with a permissions error when creating DNS records for your custom domain.
 
 ### 2. Create an IAM Role for GitHub OIDC
 - Go to the AWS IAM Console → Roles → Create role
@@ -333,57 +335,4 @@ Resources:
 ### Setting Up Route 53 for API Gateway Custom Domain
 
 - The SAM template can create a Route 53 DNS record to point your custom domain to the API Gateway domain name.
-- You must provide the `ROUTE53_HOSTED_ZONE_ID` for your base domain as a repository secret.
-- Example SAM resource:
-
-```yaml
-  ApiCustomDomainRecord:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      HostedZoneId: !Ref Route53HostedZoneId
-      Name: !Sub "api.${BaseDomain}"
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
-        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
-```
-
-### Parameterizing the Domain and Certificate ARN
-
-- Add the following as **repository secrets** in GitHub:
-  - `BASE_DOMAIN` (e.g., `yourdomain.com`)
-  - `ACM_CERTIFICATE_ARN` (the ARN you copied from ACM)
-  - `ROUTE53_HOSTED_ZONE_ID` (your Route 53 zone ID)
-- Reference these secrets in your GitHub Actions workflow and pass them as parameter values to your SAM template.
-- In your SAM template, define these as parameters:
-
-```yaml
-Parameters:
-  BaseDomain:
-    Type: String
-  AcmCertificateArn:
-    Type: String
-  Route53HostedZoneId:
-    Type: String
-```
-
-- In your GitHub Actions workflow, reference the secrets and pass them to `sam deploy`:
-
-```bash
-sam deploy --stack-name $STACK_NAME \
-  --capabilities CAPABILITY_IAM \
-  --region $AWS_REGION \
-  --resolve-s3 \
-  --parameter-overrides \
-    BaseDomain=$BASE_DOMAIN \
-    AcmCertificateArn=$ACM_CERTIFICATE_ARN \
-    Route53HostedZoneId=$ROUTE53_HOSTED_ZONE_ID
-```
-
-> **Note:** All sensitive values (including `ACM_CERTIFICATE_ARN`) are managed as repository secrets in GitHub and referenced in your workflow. Do not hard-code these values or pass them as plain parameters outside the secrets system.
-
----
-
-This deployment approach ensures a cost-effective, scalable, and secure OpenAI-compatible API proxy, ready for integration with modern developer tools and production-grade CI/CD, all deployed in **us-west-2**. The only place the project name is hard-coded is in the OIDC trust policy for security. 
-
-> **Note:** `ROUTE53_HOSTED_ZONE_ID` is required so that the deployment can create or update DNS records for your API Gateway custom domain. This value is specific to your AWS account and domain, and is not easily or reliably derived from the base domain alone in a cross-account or multi-zone environment. While it is technically possible to look up the hosted zone ID from the base domain using the AWS CLI or SDK, providing it explicitly as a secret avoids ambiguity and ensures the deployment targets the correct zone, especially if you have multiple zones with similar names or subdomains. 
+- You must provide the `
