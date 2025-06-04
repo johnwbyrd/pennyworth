@@ -13,7 +13,82 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
 
 ## Secure CI/CD with GitHub Actions OIDC (Recommended)
 
-### 1. Create an IAM Role for GitHub OIDC
+### 1. Create a Custom IAM Policy for Deployment
+- Go to the IAM Console → Policies → Create policy.
+- Use the JSON editor to paste a policy with all permissions needed for deployment (see example below).
+- Name the policy `pennyworth-deployment`.
+- Create the policy.
+
+**Important Security Note:**
+- The `iam:PassRole` permission should **not** use a wildcard (`"Resource": "*"`) in production. This is overly permissive and a security risk.
+- Instead, restrict `iam:PassRole` to only the specific IAM roles that will be passed to AWS services (such as Lambda execution roles).
+- If you do not know the role ARNs yet (e.g., before your first deploy), you may use a wildcard temporarily for development, but **you must update the policy to use specific ARNs before production**.
+- You may need to deploy your SAM stack once to get the actual role names/ARNs (these can be exported as outputs from your SAM template), then update your policy.
+
+**Example of a restricted PassRole statement:**
+```json
+{
+  "Effect": "Allow",
+  "Action": "iam:PassRole",
+  "Resource": [
+    "arn:aws:iam::<AWS_ACCOUNT_ID>:role/pennyworth-lambda-execution-role"
+  ]
+}
+```
+- Optionally, you can further restrict which services the role can be passed to:
+```json
+{
+  "Effect": "Allow",
+  "Action": "iam:PassRole",
+  "Resource": "arn:aws:iam::<AWS_ACCOUNT_ID>:role/pennyworth-lambda-execution-role",
+  "Condition": {
+    "StringEquals": {
+      "iam:PassedToService": "lambda.amazonaws.com"
+    }
+  }
+}
+```
+
+**Example Policy (for initial development only):**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:*",
+        "cognito-idp:*",
+        "cognito-identity:*",
+        "dynamodb:*",
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:ListRoles",
+        "iam:ListRolePolicies",
+        "iam:GetPolicy",
+        "iam:ListPolicies",
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:UpdateAssumeRolePolicy",
+        "logs:*",
+        "lambda:*",
+        "apigateway:*",
+        "s3:*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+- **Replace the wildcard in `iam:PassRole` with specific ARNs as soon as you know them.**
+
+### 2. Create an IAM Role for GitHub OIDC
 - Go to the AWS IAM Console → Roles → Create role
 - Select **Web identity** as the trusted entity type
 - Choose **OIDC provider**: `token.actions.githubusercontent.com`
@@ -40,9 +115,12 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
 }
 ```
 - **Note:** The project/repo name (`johnwbyrd/pennyworth`) is hard-coded here for security. This ensures only workflows from your `main` branch in the `johnwbyrd/pennyworth` repo can assume the role. **This is the only place the project name should be hard-coded.**
+- **Attach the custom policy you created in the previous step** (`pennyworth-deployment`) to this role during or after creation.
+- **Name this role `pennyworth-github-deploy-role`. Use this name for all references to the deployment role.**
 
-### 2. Attach Least-Privilege Policies
+### 3. Attach Least-Privilege Policies
 - Attach a policy that allows only the actions needed for deployment (CloudFormation, Lambda, API Gateway, Route 53, ACM, etc.).
+- These least-privilege policies should be attached to the `pennyworth-github-deploy-role` IAM role you created in the previous step. This ensures that only this role, when assumed by GitHub Actions, has the necessary permissions to deploy and manage your infrastructure.
 - Example (very minimal, expand as needed):
 
 ```json
@@ -57,67 +135,34 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
 ```
 - For production, scope resources and actions as tightly as possible.
 
-### 3. Get the Role ARN and Add It to GitHub
-- After creating the role, copy its **Role ARN** (e.g., `arn:aws:iam::123456789012:role/github-oidc-deploy-role`)
+### 4. Get the Role ARN and Add It to GitHub
+- After creating the role, copy its **Role ARN** (e.g., `arn:aws:iam::123456789012:role/pennyworth-github-deploy-role`)
 - In your GitHub repository, go to **Settings → Secrets and variables → Actions**
-- Add a new **Repository Secret** or **Variable**:
+- Add a new **Repository Secret**:
   - Name: `AWS_DEPLOY_ROLE_ARN`
   - Value: (paste the full Role ARN)
+- Add a new **Repository Secret**:
+  - Name: `ROUTE53_HOSTED_ZONE_ID`
+  - Value: (the Route 53 Hosted Zone ID for your base domain, e.g., `Z1234567890ABC`)
+- Add a new **Repository Variable**:
+  - Name: `STACK_NAME`
+  - Value: (your chosen stack name, e.g., `uproro-prod`)
 
-### 4. Configure GitHub Actions to Use the Deploy Role
-- In your workflow YAML, use the `aws-actions/configure-aws-credentials` action with `role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}` (or `${{ vars.AWS_DEPLOY_ROLE_ARN }}` if you use a variable):
-- Set the stack name dynamically from the base domain (e.g., `uproro-prod` if `BASE_DOMAIN` is `uproro.com`).
+### 5. Configure GitHub Actions to Use the Deploy Role
+- In your workflow YAML, use the `aws-actions/configure-aws-credentials` action with `role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}`.
+- Set the stack name dynamically from the repository variable `${{ vars.STACK_NAME }}`.
 - **All other configuration (stack name, resource names, etc.) should use variables or parameters, not hard-coded project names.**
 
-```yaml
-env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
-  ROUTE53_HOSTED_ZONE_ID: ${{ secrets.ROUTE53_HOSTED_ZONE_ID }}
-  AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-  STACK_NAME: ${{ format('{0}-prod', env.BASE_DOMAIN != null && env.BASE_DOMAIN != '' && contains(env.BASE_DOMAIN, '.') ? split(env.BASE_DOMAIN, '.')[0] : 'app') }}
+> **Note:** The full GitHub Actions workflow YAML for deployment is located at `.github/workflows/deploy.yml`. Please refer to that file for the latest pipeline configuration and environment variable usage.
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-          role-session-name: github-actions
-      - name: Build and package Lambda
-        run: sam build
-      - name: Set stack name
-        id: stackname
-        run: |
-          BASE="${BASE_DOMAIN%%.*}"
-          echo "STACK_NAME=${BASE}-prod" >> $GITHUB_ENV
-      - name: Deploy with SAM
-        run: |
-          sam deploy --stack-name $STACK_NAME \
-            --capabilities CAPABILITY_IAM \
-            --region $AWS_REGION \
-            --parameter-overrides \
-              DomainName=api.${BASE_DOMAIN} \
-              HostedZoneId=$ROUTE53_HOSTED_ZONE_ID
-```
-
-**Instructions:**
-- The `STACK_NAME` is set dynamically based on the base domain (e.g., `uproro-prod` for `uproro.com`).
-- The `Set stack name` step extracts the part before the first dot in `BASE_DOMAIN` and appends `-prod`.
-- The `sam deploy` command uses this dynamic stack name.
-- **Do not hard-code the project name anywhere except the OIDC trust policy.**
-
-### 5. Route 53 and Custom Domain Setup
+### 6. Route 53 and Custom Domain Setup
 - Your SAM/CloudFormation template should:
   - Create an API Gateway custom domain for `api.${BASE_DOMAIN}` in **us-west-2**
   - Request or reference an ACM certificate for the domain in **us-west-2**
   - Create/update a Route 53 record to point `api.${BASE_DOMAIN}` to the API Gateway custom domain
 - You may need a Lambda-backed custom resource or post-deploy script for DNS if not handled natively by SAM
 
-### 6. Best Practices for Long-Term Security
+### 7. Best Practices for Long-Term Security
 - **Always use OIDC for CI/CD automation**—never static AWS keys
 - **Scope IAM roles tightly** (least privilege, restrict to your repo/branch)
 - **Rotate and audit roles regularly**
@@ -171,6 +216,42 @@ jobs:
 - Test with VS Code, Cursor, or other OpenAI API clients
 - Verify streaming and large/long-running request handling
 
+### 2a. (After First Deploy) Restrict iam:PassRole to Specific Role ARNs
+
+After your first successful deployment, you should restrict the deployment role's `iam:PassRole` permission to only the specific IAM roles created by your stack (such as Lambda execution roles). This is a one-time manual step unless you add new roles in the future.
+
+**How to do this:**
+1. **Add Outputs for Role ARNs in your SAM template:**
+   ```yaml
+   Outputs:
+     MyLambdaRoleArn:
+       Description: "Lambda execution role ARN"
+       Value: !GetAtt MyLambdaRole.Arn
+     # Repeat for each Lambda execution role
+   ```
+2. **Deploy your stack as usual.**
+3. **Retrieve the role ARNs after deployment:**
+   ```bash
+   aws cloudformation describe-stacks --stack-name <your-stack> --query "Stacks[0].Outputs"
+   ```
+   This will list all outputs, including the Lambda execution role ARNs.
+4. **Update your deployment role's policy:**
+   - Replace the wildcard in the `iam:PassRole` statement with the specific ARNs you retrieved.
+   - Example:
+     ```json
+     {
+       "Effect": "Allow",
+       "Action": "iam:PassRole",
+       "Resource": [
+         "arn:aws:iam::<AWS_ACCOUNT_ID>:role/pennyworth-lambda-execution-role"
+       ]
+     }
+     ```
+5. **If you add new Lambda functions (and thus new roles) in the future, repeat this process.**
+
+**Why is this necessary?**
+- The deployment role's permissions must be set before you deploy, but the ARNs of the roles you need to reference don't exist until after the stack is deployed. This is a security best practice and a limitation of how AWS separates permissions and resource creation.
+
 ## Special Considerations
 
 ### Long-Running Requests
@@ -197,3 +278,5 @@ jobs:
 ---
 
 This deployment approach ensures a cost-effective, scalable, and secure OpenAI-compatible API proxy, ready for integration with modern developer tools and production-grade CI/CD, all deployed in **us-west-2**. The only place the project name is hard-coded is in the OIDC trust policy for security. 
+
+> **Note:** `ROUTE53_HOSTED_ZONE_ID` is required so that the deployment can create or update DNS records for your API Gateway custom domain. This value is specific to your AWS account and domain, and is not easily or reliably derived from the base domain alone in a cross-account or multi-zone environment. While it is technically possible to look up the hosted zone ID from the base domain using the AWS CLI or SDK, providing it explicitly as a secret avoids ambiguity and ensures the deployment targets the correct zone, especially if you have multiple zones with similar names or subdomains. 
