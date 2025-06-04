@@ -101,14 +101,17 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
         "route53:ListHostedZones",
         "route53:ChangeResourceRecordSets",
         "route53:GetChange",
-        "route53:ListResourceRecordSets"
+        "route53:ListResourceRecordSets",
+        "acm:DescribeCertificate",
+        "acm:ListCertificates",
+        "acm:GetCertificate"
       ],
       "Resource": "*"
     }
   ]
 }
 ```
-- **Note:** The Route 53 permissions (`route53:GetHostedZone`, `route53:ListHostedZones`, `route53:ChangeResourceRecordSets`, `route53:GetChange`, and `route53:ListResourceRecordSets`) are required for CloudFormation/SAM to look up your hosted zone, create/update/delete DNS records, and check the status of DNS changes for your custom domain. Without them, stack creation will fail with a permissions error when creating or managing DNS records for your custom domain.
+- **Note:** This policy includes all permissions required for CloudFormation/SAM to fully manage Lambda, API Gateway custom domains, Route 53 DNS records, IAM roles, S3 artifacts, logging, and referencing ACM certificates. For production, restrict actions and resources as appropriate for least privilege.
 - **Replace the wildcard in `iam:PassRole` with specific ARNs as soon as you know them.**
 
 ### 2. Create an IAM Role for GitHub OIDC
