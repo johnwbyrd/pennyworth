@@ -1,32 +1,195 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Minimal Hello World SAM template for pipeline testing
+Description: Pennyworth - OpenAI-compatible API proxy for AWS Bedrock
 
+# Parameters required for deployment
 Parameters:
+  # Base domain for the API (e.g., example.com)
+  # Used to create the custom API Gateway domain (api.example.com)
   BaseDomain:
     Type: String
+    Description: The base domain for your API (e.g., example.com). Used to create the custom API Gateway domain (api.example.com).
+
+  # ACM certificate ARN for HTTPS
+  # Must be in the same region as API Gateway
   AcmCertificateArn:
     Type: String
+    Description: The ARN of the ACM certificate for your custom domain. Must be in the same region as API Gateway.
+
+  # Route 53 hosted zone ID for DNS
+  # Used to create the DNS record for the API
   Route53HostedZoneId:
     Type: String
+    Description: The ID of your Route 53 hosted zone for the base domain. Used to create the DNS record for the API.
+
+  # Environment (dev/prod)
+  # Controls resource naming and some configuration
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+    Description: The deployment environment (dev or prod). Controls resource naming and some configuration.
 
 Resources:
-  HelloWorldFunction:
+  # Cognito User Pool for authentication
+  PennyworthUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub ${AWS::StackName}-user-pool
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 12
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+        - Name: name
+          AttributeDataType: String
+          Required: true
+          Mutable: true
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+
+  # Cognito User Pool Client for CLI authentication
+  PennyworthUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref PennyworthUserPool
+      ClientName: !Sub ${AWS::StackName}-cli-client
+      GenerateSecret: true
+      ExplicitAuthFlows:
+        - ADMIN_USER_PASSWORD_AUTH
+        - ADMIN_NO_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  # Cognito Identity Pool for temporary AWS credentials
+  PennyworthIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      IdentityPoolName: !Sub ${AWS::StackName}-identity-pool
+      CognitoIdentityProviders:
+        - ClientId: !Ref PennyworthUserPoolClient
+          ProviderName: !GetAtt PennyworthUserPool.ProviderName
+
+  # IAM Role for authenticated users (CLI access)
+  PennyworthAdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-admin-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: cognito-identity.amazonaws.com
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud': !Ref PennyworthIdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: PennyworthAdminPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource: !GetAtt ApiKeysTable.Arn
+
+  # Role attachment for Identity Pool
+  IdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref PennyworthIdentityPool
+      Roles:
+        authenticated: !GetAtt PennyworthAdminRole.Arn
+
+  # DynamoDB table for API keys
+  ApiKeysTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${AWS::StackName}-api-keys
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: api_key_hash
+          AttributeType: S
+        - AttributeName: owner
+          AttributeType: S
+      KeySchema:
+        - AttributeName: api_key_hash
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: OwnerIndex
+          KeySchema:
+            - AttributeName: owner
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  # Lambda function for LiteLLM proxy
+  LiteLLMProxyFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: app.lambda_handler
       Runtime: python3.11
       CodeUri: hello_world/
-      Description: A simple Hello World Lambda function
-      MemorySize: 128
-      Timeout: 3
+      Description: LiteLLM proxy for OpenAI-compatible API
+      MemorySize: 512
+      Timeout: 30
+      Environment:
+        Variables:
+          API_KEYS_TABLE: !Ref ApiKeysTable
+          USER_POOL_ID: !Ref PennyworthUserPool
+          USER_POOL_CLIENT_ID: !Ref PennyworthUserPoolClient
+          IDENTITY_POOL_ID: !Ref PennyworthIdentityPool
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ApiKeysTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: '*'
       Events:
-        HelloWorldApi:
+        ProxyApi:
           Type: Api
           Properties:
-            Path: /hello
-            Method: get
+            Path: /v1/{proxy+}
+            Method: any
+        MCPApi:
+          Type: Api
+          Properties:
+            Path: /mcp/{proxy+}
+            Method: any
 
+  # CloudWatch Log Group for Lambda
+  LiteLLMProxyLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${LiteLLMProxyFunction}
+      RetentionInDays: 7
+
+  # API Gateway custom domain (existing)
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
     Properties:
@@ -54,9 +217,58 @@ Resources:
         HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
 
 Outputs:
-  HelloWorldApiUrl:
-    Description: "API Gateway endpoint URL for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello"
+  # Cognito User Pool ID
+  # Required for user management and authentication
+  UserPoolId:
+    Description: Cognito User Pool ID. Required for user management and authentication.
+    Value: !Ref PennyworthUserPool
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolId
+
+  # Cognito User Pool Client ID
+  # Required for CLI authentication
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID. Required for CLI authentication.
+    Value: !Ref PennyworthUserPoolClient
+    Export:
+      Name: !Sub ${AWS::StackName}-UserPoolClientId
+
+  # Cognito Identity Pool ID
+  # Required for temporary AWS credentials
+  IdentityPoolId:
+    Description: Cognito Identity Pool ID. Required for temporary AWS credentials.
+    Value: !Ref PennyworthIdentityPool
+    Export:
+      Name: !Sub ${AWS::StackName}-IdentityPoolId
+
+  # IAM Role ARN for authenticated users
+  # Used by the CLI tool for API key management
+  AdminRoleArn:
+    Description: IAM Role ARN for authenticated users. Used by the CLI tool for API key management.
+    Value: !GetAtt PennyworthAdminRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-AdminRoleArn
+
+  # DynamoDB table name for API keys
+  # Used for API key storage and management
+  ApiKeysTableName:
+    Description: DynamoDB table name for API keys. Used for API key storage and management.
+    Value: !Ref ApiKeysTable
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiKeysTableName
+
+  # API Gateway endpoint URL
+  # The default API Gateway URL for the v1 API
+  ApiUrl:
+    Description: API Gateway endpoint URL for the v1 API. This is the default API Gateway URL.
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1"
+    Export:
+      Name: !Sub ${AWS::StackName}-ApiUrl
+
+  # Custom domain URL
+  # The custom domain URL for the v1 API
   CustomApiUrl:
-    Description: "Custom domain URL for Hello World function"
-    Value: !Sub "https://api.${BaseDomain}/hello" 
+    Description: Custom domain URL for the v1 API. This is the primary URL for API access.
+    Value: !Sub "https://api.${BaseDomain}/v1"
+    Export:
+      Name: !Sub ${AWS::StackName}-CustomApiUrl 
