@@ -37,6 +37,7 @@ Resources:
 
   ApiBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
+    DependsOn: ServerlessRestApiProdStage
     Properties:
       DomainName: !Ref ApiCustomDomain
       RestApiId: !Ref ServerlessRestApi
