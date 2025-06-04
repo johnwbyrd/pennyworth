@@ -2,6 +2,14 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: Minimal Hello World SAM template for pipeline testing
 
+Parameters:
+  BaseDomain:
+    Type: String
+  AcmCertificateArn:
+    Type: String
+  Route53HostedZoneId:
+    Type: String
+
 Resources:
   HelloWorldFunction:
     Type: AWS::Serverless::Function
@@ -19,7 +27,35 @@ Resources:
             Path: /hello
             Method: get
 
+  ApiCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Sub "api.${BaseDomain}"
+      RegionalCertificateArn: !Ref AcmCertificateArn
+      EndpointConfiguration:
+        Types: [REGIONAL]
+
+  ApiBasePathMapping:
+    Type: AWS::ApiGateway::BasePathMapping
+    Properties:
+      DomainName: !Ref ApiCustomDomain
+      RestApiId: !Ref ServerlessRestApi
+      Stage: Prod
+
+  ApiCustomDomainRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref Route53HostedZoneId
+      Name: !Sub "api.${BaseDomain}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
+        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
+
 Outputs:
   HelloWorldApiUrl:
     Description: "API Gateway endpoint URL for Hello World function"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello" 
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello"
+  CustomApiUrl:
+    Description: "Custom domain URL for Hello World function"
+    Value: !Sub "https://api.${BaseDomain}/hello" 

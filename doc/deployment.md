@@ -299,6 +299,87 @@ After your first successful deployment, you should restrict the deployment role'
 - Rotate API keys and credentials as needed
 - Update the deployment package to add new models or providers
 
+### Creating and Validating an ACM Certificate for Your Custom Domain
+
+To use a custom domain (e.g., `api.yourdomain.com`) with API Gateway, you need an ACM certificate for that domain in the same region as your API Gateway (e.g., `us-west-2`).
+
+1. **Create the certificate in the AWS Console:**
+   - Go to the AWS Certificate Manager (ACM) Console.
+   - Request a public certificate for your custom domain (e.g., `api.yourdomain.com`).
+   - Choose DNS validation (recommended).
+   - Add the provided CNAME record to your domain's DNS (in Route 53 or your DNS provider).
+   - Wait for the certificate to be validated (Status: "Issued").
+2. **Copy the ACM certificate ARN** (you'll need this for your SAM template and deployment secrets).
+
+### Referencing the ACM Certificate in Your SAM Template
+
+Reference the ACM certificate ARN in your `template.yaml` for the API Gateway custom domain:
+
+```yaml
+Resources:
+  ApiCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties:
+      DomainName: !Sub "api.${BaseDomain}"
+      RegionalCertificateArn: !Ref AcmCertificateArn
+      EndpointConfiguration:
+        Types: [REGIONAL]
+```
+
+- Pass the certificate ARN as a parameter or secret (see below).
+
+### Setting Up Route 53 for API Gateway Custom Domain
+
+- The SAM template can create a Route 53 DNS record to point your custom domain to the API Gateway domain name.
+- You must provide the `ROUTE53_HOSTED_ZONE_ID` for your base domain as a repository secret.
+- Example SAM resource:
+
+```yaml
+  ApiCustomDomainRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref Route53HostedZoneId
+      Name: !Sub "api.${BaseDomain}"
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
+        HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
+```
+
+### Parameterizing the Domain and Certificate ARN
+
+- Add the following as **repository secrets** in GitHub:
+  - `BASE_DOMAIN` (e.g., `yourdomain.com`)
+  - `ACM_CERTIFICATE_ARN` (the ARN you copied from ACM)
+  - `ROUTE53_HOSTED_ZONE_ID` (your Route 53 zone ID)
+- Reference these secrets in your GitHub Actions workflow and pass them as parameter values to your SAM template.
+- In your SAM template, define these as parameters:
+
+```yaml
+Parameters:
+  BaseDomain:
+    Type: String
+  AcmCertificateArn:
+    Type: String
+  Route53HostedZoneId:
+    Type: String
+```
+
+- In your GitHub Actions workflow, reference the secrets and pass them to `sam deploy`:
+
+```bash
+sam deploy --stack-name $STACK_NAME \
+  --capabilities CAPABILITY_IAM \
+  --region $AWS_REGION \
+  --resolve-s3 \
+  --parameter-overrides \
+    BaseDomain=$BASE_DOMAIN \
+    AcmCertificateArn=$ACM_CERTIFICATE_ARN \
+    Route53HostedZoneId=$ROUTE53_HOSTED_ZONE_ID
+```
+
+> **Note:** All sensitive values (including `ACM_CERTIFICATE_ARN`) are managed as repository secrets in GitHub and referenced in your workflow. Do not hard-code these values or pass them as plain parameters outside the secrets system.
+
 ---
 
 This deployment approach ensures a cost-effective, scalable, and secure OpenAI-compatible API proxy, ready for integration with modern developer tools and production-grade CI/CD, all deployed in **us-west-2**. The only place the project name is hard-coded is in the OIDC trust policy for security. 
