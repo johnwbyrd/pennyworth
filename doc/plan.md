@@ -1,5 +1,23 @@
 # Project Plan: pennyworth
 
+## Project Context (Notes to Future Selves)
+
+- The project is currently in a "green" state: end-to-end deployment works, including custom domain, Route 53, ACM, Lambda, and API Gateway. The API is live and returns a Hello World response at the custom domain.
+- CI/CD is fully automated via GitHub Actions, using OIDC and a least-privilege (but broad) IAM role. All configuration and secrets are managed as repository secrets.
+- The zero-cost-at-rest philosophy is central: all compute is serverless (Lambda, API Gateway, DynamoDB, Route 53). No EC2 or always-on resources.
+- API keys are to be managed in DynamoDB, storing only hashes (never plaintext). No static AWS credentials are used; everything is OIDC-based.
+- The project is licensed AGPL-3.0-only.
+- The current IAM policy is intentionally broad for development. Before production, review and restrict permissions to least-privilege, especially for `iam:PassRole`, `s3:*`, and `apigateway:*`.
+- All permissions required for Route 53, ACM, Lambda, API Gateway, and CloudFormation are now included in the example policy.
+- When using `AWS::ApiGateway::BasePathMapping`, use `DependsOn: ServerlessRestApiProdStage` to avoid stage errors. The default stage name is `Prod` (case-sensitive).
+- If a stack is in `ROLLBACK_COMPLETE`, it must be deleted before redeploying.
+- All deployment parameters (domain, certificate ARN, hosted zone ID, etc.) are passed as repository secrets. The workflow uses `--no-fail-on-empty-changeset` to avoid failing on no-op deploys.
+- Next steps: expand the SAM template for Cognito, DynamoDB, and real endpoints; build the CLI tool; harden IAM; add monitoring, logging, and cost tracking; keep documentation up to date.
+- Not yet done: real LLM endpoints/Bedrock integration, Cognito/DynamoDB resources, CLI tool, cost tracking, advanced monitoring, least-privilege IAM.
+- General advice: check logical IDs and dependencies in CloudFormation/SAM when adding resources; ClloudFormation error messages are usually precise; keep docs and plan.md up to date; use `--no-fail-on-empty-changeset` for no-op deploys; delete ROLLBACK_COMPLETE stacks before redeploying.
+
+---
+
 ## Current Status
 - Automated, secure AWS SAM deployment pipeline is live
 - Lambda function and API Gateway endpoint deployed
