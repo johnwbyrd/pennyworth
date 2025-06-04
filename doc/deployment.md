@@ -92,6 +92,7 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
         "iam:UpdateAssumeRolePolicy",
         "iam:TagRole",
         "iam:UntagRole",
+        "iam:CreateServiceLinkedRole",
         "logs:*",
         "lambda:*",
         "apigateway:*",
@@ -102,6 +103,7 @@ This guide describes how to deploy **pennyworth** (the LiteLLM-based OpenAI-comp
   ]
 }
 ```
+- **Note:** `iam:CreateServiceLinkedRole` is required for CloudFormation/SAM to create the service-linked role that API Gateway needs to manage custom domains. Without it, stack creation will fail with a permissions error when creating the custom domain for the first time in an account/region.
 - **Replace the wildcard in `iam:PassRole` with specific ARNs as soon as you know them.**
 
 ### 2. Create an IAM Role for GitHub OIDC
