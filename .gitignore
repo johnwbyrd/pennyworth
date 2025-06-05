@@ -1,0 +1,4 @@
+# Ignore Lambda build dependencies
+
+# Ignore build artifacts
+build/ 

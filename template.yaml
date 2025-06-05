@@ -171,7 +171,7 @@ Resources:
     Properties:
       Handler: app.lambda_handler
       Runtime: python3.11
-      CodeUri: src/lambda/
+      CodeUri: build/
       Description: LiteLLM proxy for OpenAI-compatible API
       MemorySize: 512
       Timeout: 30

@@ -32,6 +32,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Prepare build directory
+        run: |
+          mkdir -p build
+          cp src/lambda/*.py build/
+      - name: Install Lambda dependencies
+        run: |
+          pip install -r src/lambda/requirements.txt -t build/python
       - name: Build and package Lambda
         run: sam build
       - name: Deploy with SAM
