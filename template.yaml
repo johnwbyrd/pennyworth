@@ -70,8 +70,8 @@ Resources:
       UserPoolId: !Ref PennyworthUserPool
       GenerateSecret: true
       ExplicitAuthFlows:
-        - ALLOW_ADMIN_USER_PASSWORD_AUTH
-        - ADMIN_NO_SRP_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
       PreventUserExistenceErrors: ENABLED
 
   # Cognito Identity Pool for temporary AWS credentials
