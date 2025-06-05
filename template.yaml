@@ -62,6 +62,9 @@ Resources:
         Environment: !Ref Environment
         StackName: !Ref AWS::StackName
         Component: Authentication
+      # TODO: Enable AdvancedSecurityMode: ENFORCED for production
+      # UserPoolAddOns:
+      #   AdvancedSecurityMode: ENFORCED
 
   # Cognito User Pool Client for CLI authentication
   PennyworthUserPoolClient:
