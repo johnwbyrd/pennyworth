@@ -57,8 +57,16 @@ jobs:
         # Do NOT print or echo the values to logs. Only the secret name is visible in logs.
         # The secret is only accessible to authorized users/roles (e.g., CLI admins).
         run: |
+          set -e
           CONFIG_JSON=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION \
             --query "Stacks[0].Outputs[?OutputKey=='UserPoolId' || OutputKey=='UserPoolClientId' || OutputKey=='IdentityPoolId' || OutputKey=='ApiKeysTableName'].[OutputKey,OutputValue]" \
             --output json | jq -r 'map({(.[0]): .[1]}) | add | @json')
-          aws secretsmanager create-secret --name /pennyworth/$STACK_NAME/cli-config --secret-string "$CONFIG_JSON" \
-            || aws secretsmanager put-secret-value --secret-id /pennyworth/$STACK_NAME/cli-config --secret-string "$CONFIG_JSON" 
+          if output=$(aws secretsmanager create-secret --name /pennyworth/$STACK_NAME/cli-config --secret-string "$CONFIG_JSON" 2>&1 > /dev/null); then
+            echo "[secrets] CLI config secret created successfully."
+          elif output=$(aws secretsmanager put-secret-value --secret-id /pennyworth/$STACK_NAME/cli-config --secret-string "$CONFIG_JSON" 2>&1 > /dev/null); then
+            echo "[secrets] CLI config secret updated successfully."
+          else
+            echo "[secrets] Error creating or updating CLI config secret:"
+            echo "$output"
+            exit 1
+          fi 

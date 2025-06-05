@@ -120,7 +120,12 @@ This policy is intentionally broad and should only be used for initial stack cre
         "acm:DescribeCertificate",
         "acm:ListCertificates",
         "acm:GetCertificate",
-        "bedrock:InvokeModel"
+        "bedrock:InvokeModel",
+        # For CLI config secret management (see CLI tool section)
+        "secretsmanager:CreateSecret",
+        "secretsmanager:PutSecretValue",
+        "secretsmanager:UpdateSecret",
+        "secretsmanager:DescribeSecret"
       ],
       "Resource": "*"
     }
