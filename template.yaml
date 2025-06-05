@@ -57,15 +57,11 @@ Resources:
           Mutable: true
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: true
-      Tags:
-        - Key: Project
-          Value: Pennyworth
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: StackName
-          Value: !Ref AWS::StackName
-        - Key: Component
-          Value: Authentication
+      UserPoolTags:
+        Project: Pennyworth
+        Environment: !Ref Environment
+        StackName: !Ref AWS::StackName
+        Component: Authentication
 
   # Cognito User Pool Client for CLI authentication
   PennyworthUserPoolClient:
@@ -77,15 +73,11 @@ Resources:
         - ADMIN_USER_PASSWORD_AUTH
         - ADMIN_NO_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
-      Tags:
-        - Key: Project
-          Value: Pennyworth
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: StackName
-          Value: !Ref AWS::StackName
-        - Key: Component
-          Value: Authentication
+      UserPoolTags:
+        Project: Pennyworth
+        Environment: !Ref Environment
+        StackName: !Ref AWS::StackName
+        Component: Authentication
 
   # Cognito Identity Pool for temporary AWS credentials
   PennyworthIdentityPool:
@@ -94,15 +86,11 @@ Resources:
       CognitoIdentityProviders:
         - ClientId: !Ref PennyworthUserPoolClient
           ProviderName: !GetAtt PennyworthUserPool.ProviderName
-      Tags:
-        - Key: Project
-          Value: Pennyworth
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: StackName
-          Value: !Ref AWS::StackName
-        - Key: Component
-          Value: Authentication
+      IdentityPoolTags:
+        Project: Pennyworth
+        Environment: !Ref Environment
+        StackName: !Ref AWS::StackName
+        Component: Authentication
 
   # IAM Role for authenticated users (CLI access)
   PennyworthAdminRole:
@@ -248,10 +236,14 @@ Resources:
       EndpointConfiguration:
         Types: [REGIONAL]
       Tags:
-        Project: Pennyworth
-        Environment: !Ref Environment
-        StackName: !Ref AWS::StackName
-        Component: API
+        - Key: Project
+          Value: Pennyworth
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Component
+          Value: API
 
   ApiBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
@@ -260,13 +252,6 @@ Resources:
       DomainName: !Ref ApiCustomDomain
       RestApiId: !Ref ServerlessRestApi
       Stage: Prod
-      Tags:
-        - Key: Project
-          Value: Pennyworth
-        - Key: Environment
-          Value: !Ref Environment
-        - StackName: !Ref AWS::StackName
-        - Component: API
 
   ApiCustomDomainRecord:
     Type: AWS::Route53::RecordSet
@@ -282,8 +267,10 @@ Resources:
           Value: Pennyworth
         - Key: Environment
           Value: !Ref Environment
-        - StackName: !Ref AWS::StackName
-        - Component: API
+        - Key: StackName
+          Value: !Ref AWS::StackName
+        - Key: Component
+          Value: API
 
 Outputs:
   # Cognito User Pool ID
