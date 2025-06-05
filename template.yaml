@@ -299,14 +299,6 @@ Outputs:
     Export:
       Name: !Sub ${AWS::StackName}-IdentityPoolId
 
-  # IAM Role ARN for authenticated users
-  # Used by the CLI tool for API key management
-  AdminRoleArn:
-    Description: IAM Role ARN for authenticated users. Used by the CLI tool for API key management.
-    Value: !GetAtt PennyworthAdminRole.Arn
-    Export:
-      Name: !Sub ${AWS::StackName}-AdminRoleArn
-
   # DynamoDB table name for API keys
   # Used for API key storage and management
   ApiKeysTableName:
@@ -329,4 +321,11 @@ Outputs:
     Description: Custom domain URL for the v1 API. This is the primary URL for API access.
     Value: !Sub "https://api.${BaseDomain}/v1"
     Export:
-      Name: !Sub ${AWS::StackName}-CustomApiUrl 
+      Name: !Sub ${AWS::StackName}-CustomApiUrl
+
+  # Optionally add CliUserRoleArn output
+  CliUserRoleArn:
+    Description: IAM Role ARN for CLI users.
+    Value: !GetAtt PennyworthCliUserRole.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-CliUserRoleArn 
