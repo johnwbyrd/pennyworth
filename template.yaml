@@ -73,11 +73,6 @@ Resources:
         - ADMIN_USER_PASSWORD_AUTH
         - ADMIN_NO_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
-      UserPoolTags:
-        Project: Pennyworth
-        Environment: !Ref Environment
-        StackName: !Ref AWS::StackName
-        Component: Authentication
 
   # Cognito Identity Pool for temporary AWS credentials
   PennyworthIdentityPool:
@@ -86,11 +81,6 @@ Resources:
       CognitoIdentityProviders:
         - ClientId: !Ref PennyworthUserPoolClient
           ProviderName: !GetAtt PennyworthUserPool.ProviderName
-      IdentityPoolTags:
-        Project: Pennyworth
-        Environment: !Ref Environment
-        StackName: !Ref AWS::StackName
-        Component: Authentication
 
   # IAM Role for authenticated users (CLI access)
   PennyworthAdminRole:
