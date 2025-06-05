@@ -1,0 +1,2 @@
+# Development and test dependencies for pennyworth
+# Example: pytest, black, mypy, etc. 

@@ -110,4 +110,43 @@ Clients ──> API Gateway ──> Lambda (LiteLLM) ──> [Bedrock/OpenAI/etc
 This overview captures the main moving pieces, their responsibilities, and how they interact to provide a secure, scalable, and OpenAI-compatible API proxy for modern developer tools. API key security is maintained by never storing plaintext keys on the server or in the database.
 
 ## Optional Extensions
-- **MCP Protocol Support:** If required, a thin Lambda or container can be added to handle MCP endpoints and route to LiteLLM or directly to LLMs. **(Note: MCP support is now a near-term requirement, not just optional.)** 
+- **MCP Protocol Support:** If required, a thin Lambda or container can be added to handle MCP endpoints and route to LiteLLM or directly to LLMs. **(Note: MCP support is now a near-term requirement, not just optional.)**
+
+---
+
+## Project Directory Structure
+
+The following directory structure is recommended for maintainability, clarity, and scalability:
+
+```
+/
+├── template.yaml                # SAM/CloudFormation template
+├── README.md
+├── LICENSE
+├── requirements-dev.txt         # (Optional) Dev/test dependencies
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+├── doc/
+│   └── ...                      # Documentation
+├── src/
+│   ├── lambda/
+│   │   ├── app.py               # Lambda handler (entry point)
+│   │   ├── requirements.txt     # Lambda dependencies (LiteLLM, etc.)
+│   │   └── ...                  # Supporting modules/configs
+│   └── cli/                     # (Future) CLI tool code
+│       └── ...                  # CLI Python files
+└── tests/
+    └── ...                      # Unit/integration tests
+```
+
+**Directory and File Explanations:**
+- `src/lambda/`: All Lambda function code and dependencies. `app.py` is the entry point. Add `requirements.txt` here for Lambda dependencies.
+- `src/cli/`: Placeholder for a future CLI tool for API key management and admin tasks.
+- `tests/`: For unit and integration tests.
+- `requirements-dev.txt`: (Optional) For development and test dependencies (e.g., pytest, black).
+- `template.yaml`: The main AWS SAM/CloudFormation template, referencing `src/lambda/` as the Lambda `CodeUri`.
+- `.github/workflows/`: CI/CD pipeline definitions.
+- `doc/`: Project documentation.
+
+This structure supports local development, CI/CD, and future expansion (CLI, tests, multiple Lambdas, etc.). 
