@@ -265,7 +265,7 @@ Resources:
         WellKnownApi:
           Type: Api
           Properties:
-            Path: /v1/well-known/parameters.json
+            Path: /v1/well-known/parameters
             Method: get
       Tags:
         Project: Pennyworth
