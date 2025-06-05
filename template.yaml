@@ -70,7 +70,7 @@ Resources:
       UserPoolId: !Ref PennyworthUserPool
       GenerateSecret: true
       ExplicitAuthFlows:
-        - ADMIN_USER_PASSWORD_AUTH
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
         - ADMIN_NO_SRP_AUTH
       PreventUserExistenceErrors: ENABLED
 
