@@ -251,7 +251,7 @@ Resources:
   WellKnownParametersFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: well_known.lambda_handler
+      Handler: parameters.lambda_handler
       Runtime: python3.11
       CodeUri: src/lambda/
       Description: Returns public parameters for CLI and clients
@@ -266,7 +266,12 @@ Resources:
         WellKnownApi:
           Type: Api
           Properties:
-            Path: /v1/well-known/parameters
+            Path: /v1/parameters/well-known
+            Method: get
+        ProtectedApi:
+          Type: Api
+          Properties:
+            Path: /v1/parameters/protected
             Method: get
       Tags:
         Project: Pennyworth

@@ -3,6 +3,7 @@ import botocore
 import os
 import json
 from typing import Optional
+import getpass
 
 # These will be loaded from the CLI config secret at runtime
 COGNITO_USER_POOL_ID = None
@@ -21,7 +22,7 @@ def load_auth_config(config: dict):
 
 def cognito_login(username: str, password: str) -> str:
     """
-    Authenticate a user with Cognito User Pool and return the ID token. Handles MFA if required.
+    Authenticate a user with Cognito User Pool and return the ID token. Handles MFA and NEW_PASSWORD_REQUIRED if required.
     """
     client = boto3.client("cognito-idp", region_name=AWS_REGION)
     try:
@@ -30,25 +31,53 @@ def cognito_login(username: str, password: str) -> str:
             AuthParameters={"USERNAME": username, "PASSWORD": password},
             ClientId=COGNITO_CLIENT_ID,
         )
-        if "ChallengeName" in resp and resp["ChallengeName"] in ("SMS_MFA", "SOFTWARE_TOKEN_MFA"):
-            mfa_code = input(f"Enter MFA code ({resp['ChallengeName']}): ")
-            mfa_resp = client.respond_to_auth_challenge(
-                ClientId=COGNITO_CLIENT_ID,
-                ChallengeName=resp["ChallengeName"],
-                Session=resp["Session"],
-                ChallengeResponses={
-                    "USERNAME": username,
-                    ("SMS_MFA_CODE" if resp["ChallengeName"] == "SMS_MFA" else "SOFTWARE_TOKEN_MFA_CODE"): mfa_code,
-                },
-            )
-            id_token = mfa_resp["AuthenticationResult"]["IdToken"]
-            return id_token
+        if "ChallengeName" in resp:
+            if resp["ChallengeName"] == "NEW_PASSWORD_REQUIRED":
+                user_name = input("A new password is required. Enter your name: ")
+                for attempt in range(3):
+                    new_password = getpass.getpass("Enter new password: ")
+                    try:
+                        challenge_resp = client.respond_to_auth_challenge(
+                            ClientId=COGNITO_CLIENT_ID,
+                            ChallengeName="NEW_PASSWORD_REQUIRED",
+                            Session=resp["Session"],
+                            ChallengeResponses={
+                                "USERNAME": username,
+                                "NEW_PASSWORD": new_password,
+                                "userAttributes.name": user_name,
+                            },
+                        )
+                        if "AuthenticationResult" in challenge_resp:
+                            return challenge_resp["AuthenticationResult"]["IdToken"]
+                        else:
+                            print("Password change did not complete. Challenge response: ", challenge_resp)
+                            break
+                    except client.exceptions.InvalidPasswordException as e:
+                        print(f"Password change failed: {e}")
+                    except client.exceptions.InvalidParameterException as e:
+                        print(f"Password change failed: {e}")
+                raise RuntimeError("Failed to set a new password after 3 attempts.")
+            elif resp["ChallengeName"] in ("SMS_MFA", "SOFTWARE_TOKEN_MFA"):
+                mfa_code = input(f"Enter MFA code ({resp['ChallengeName']}): ")
+                mfa_resp = client.respond_to_auth_challenge(
+                    ClientId=COGNITO_CLIENT_ID,
+                    ChallengeName=resp["ChallengeName"],
+                    Session=resp["Session"],
+                    ChallengeResponses={
+                        "USERNAME": username,
+                        ("SMS_MFA_CODE" if resp["ChallengeName"] == "SMS_MFA" else "SOFTWARE_TOKEN_MFA_CODE"): mfa_code,
+                    },
+                )
+                id_token = mfa_resp["AuthenticationResult"]["IdToken"]
+                return id_token
+            else:
+                raise Exception(f"Unsupported Cognito challenge: {resp['ChallengeName']}")
+        elif "AuthenticationResult" in resp:
+            return resp["AuthenticationResult"]["IdToken"]
         else:
-            id_token = resp["AuthenticationResult"]["IdToken"]
-            return id_token
-    except botocore.exceptions.ClientError as e:
-        print(f"[auth] Cognito login failed: {e}")
-        raise
+            raise RuntimeError("Unexpected Cognito response: {}".format(resp))
+    except client.exceptions.NotAuthorizedException as e:
+        raise RuntimeError(f"Login failed: {e}")
 
 
 def get_aws_credentials_from_cognito(id_token: str) -> dict:

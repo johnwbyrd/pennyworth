@@ -1,1 +1,2 @@
-liteLLM==1.71.3 
+liteLLM==1.71.3
+python-jose 
