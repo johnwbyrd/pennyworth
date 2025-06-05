@@ -9,7 +9,7 @@ app = typer.Typer(help="Pennyworth API Key Management CLI.")
 
 # Global config for stack and region
 cli_config = {
-    "api_url": os.environ.get("PENNYWORTH_API_URL", "https://api.example.com"),
+    "api_url": os.environ.get("PENNYWORTH_API_URL", "https://api.uproro.com"),
 }
 
 # Global option to disable rich/fancy output
@@ -24,7 +24,7 @@ def _set_plain_output(plain: bool):
         os.environ["NO_COLOR"] = "1"
 
 # Fetch config from the well-known endpoint at startup
-well_known_url = f"{cli_config['api_url']}/v1/well-known/parameters.json"
+well_known_url = f"{cli_config['api_url']}/v1/well-known/parameters"
 try:
     resp = requests.get(well_known_url, timeout=5)
     resp.raise_for_status()
