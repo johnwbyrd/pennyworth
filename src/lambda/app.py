@@ -1,5 +1,5 @@
 import json
-import liteLLM
+import litellm
 import logging
 
 logger = logging.getLogger()
@@ -7,8 +7,8 @@ logger.setLevel(logging.INFO)
 
 # Placeholder: configure LiteLLM to use AWS Bedrock
 # You will need to set environment variables or pass config for your Bedrock provider/model
-# Example: liteLLM.provider = "bedrock"
-#          liteLLM.bedrock_model = "your-model-id"
+# Example: litellm.provider = "bedrock"
+#          litellm.bedrock_model = "your-model-id"
 
 def lambda_handler(event, context):
     logger.info("Received event: %s", json.dumps(event))
@@ -23,7 +23,7 @@ def lambda_handler(event, context):
             }
 
         # Call Bedrock via LiteLLM (update model/provider as needed)
-        # Example: response = liteLLM.completion("your-model-id", prompt=prompt)
+        # Example: response = litellm.completion("your-model-id", prompt=prompt)
         # For now, we'll use a placeholder response
         response = {
             "choices": [
