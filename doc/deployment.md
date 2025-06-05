@@ -92,6 +92,7 @@ This policy is intentionally broad and should only be used for initial stack cre
         "iam:CreateRole",
         "iam:DeleteRole",
         "iam:GetRole",
+        "iam:GetRolePolicy",
         "iam:PassRole",
         "iam:PutRolePolicy",
         "iam:AttachRolePolicy",
@@ -133,6 +134,11 @@ This policy is intentionally broad and should only be used for initial stack cre
 
 This policy should be used for production deployments. It is tightly scoped to only the actions and resources required for deploying and updating the Pennyworth stack. Replace placeholders (e.g., `<REGION>`, `<ACCOUNT_ID>`, `<STACK_NAME>`, `<BUCKET_NAME>`) with your actual values or use CloudFormation/SAM parameters. Use the secret names (e.g., ACM_CERTIFICATE_ARN, ROUTE53_HOSTED_ZONE_ID) in your workflow and template.
 
+**Important:**
+> When deploying CloudFormation stacks that create or update IAM roles, your deployment role must have `iam:GetRolePolicy` and `iam:GetRole` permissions on those roles. If these are missing, deployment will fail with errors like:
+>
+> `not authorized to perform: iam:GetRolePolicy on resource: role ... because no identity-based policy allows the iam:GetRolePolicy action`
+
 ```json
 {
   "Version": "2012-10-17",
@@ -160,18 +166,19 @@ This policy should be used for production deployments. It is tightly scoped to o
         "lambda:UpdateFunctionConfiguration",
         "lambda:DeleteFunction",
         "lambda:GetFunction",
-        "lambda:ListFunction s",
+        "lambda:ListFunctions",
         "lambda:AddPermission",
         "lambda:RemovePermission"
       ],
       "Resource": "arn:aws:lambda:<REGION>:<ACCOUNT_ID>:function:<STACK_NAME>*"
     },
-    // IAM: Only for passing roles created by this stack (e.g., Lambda execution roles)
+    // IAM: For passing and managing roles created by this stack (e.g., Lambda execution roles)
     {
       "Effect": "Allow",
       "Action": [
         "iam:PassRole",
         "iam:GetRole",
+        "iam:GetRolePolicy",
         "iam:TagRole",
         "iam:UntagRole",
         "iam:CreateRole",
