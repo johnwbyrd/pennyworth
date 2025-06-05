@@ -13,7 +13,13 @@ logger.setLevel(logging.INFO)
 def lambda_handler(event, context):
     logger.info("Received event: %s", json.dumps(event))
     try:
-        body = json.loads(event.get("body", "{}"))
+        if event.get("httpMethod") == "GET":
+            return {
+                "statusCode": 200,
+                "body": json.dumps({"message": "pennyworth is running."})
+            }
+
+        body = json.loads(event.get("body") or "{}")
         prompt = body.get("prompt")
         if not prompt:
             logger.warning("Missing 'prompt' in request body: %s", body)
