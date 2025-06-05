@@ -78,6 +78,7 @@ Resources:
   PennyworthIdentityPool:
     Type: AWS::Cognito::IdentityPool
     Properties:
+      AllowUnauthenticatedIdentities: false
       CognitoIdentityProviders:
         - ClientId: !Ref PennyworthUserPoolClient
           ProviderName: !GetAtt PennyworthUserPool.ProviderName
@@ -252,15 +253,6 @@ Resources:
       AliasTarget:
         DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
         HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
-      Tags:
-        - Key: Project
-          Value: Pennyworth
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: StackName
-          Value: !Ref AWS::StackName
-        - Key: Component
-          Value: API
 
 Outputs:
   # Cognito User Pool ID
