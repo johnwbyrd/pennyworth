@@ -206,18 +206,6 @@ Resources:
         StackName: !Ref AWS::StackName
         Component: APIProxy
 
-  # CloudWatch Log Group for Lambda
-  LiteLLMProxyLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub /aws/lambda/${LiteLLMProxyFunction}
-      RetentionInDays: 7
-      Tags:
-        Project: Pennyworth
-        Environment: !Ref Environment
-        StackName: !Ref AWS::StackName
-        Component: Logging
-
   # API Gateway custom domain
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
