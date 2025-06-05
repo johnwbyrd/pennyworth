@@ -175,6 +175,34 @@ pennyworth-cli rotate --hash abcd1234... --output text
 - More granular permission management
 - Additional output formats (CSV, YAML)
 
+## Development Setup
+
+To develop or run the Pennyworth CLI tool locally, follow these steps:
+
+1. **Create and activate a Python virtual environment (recommended):**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+
+2. **Install development dependencies:**
+   ```bash
+   pip install -r requirements-dev.txt
+   ```
+   This will install Typer and any other dev/test tools needed for the CLI and project development.
+
+3. **Run the CLI tool:**
+   ```bash
+   python src/cli/main.py --help
+   ```
+
+4. **(Optional) Deactivate the virtual environment when done:**
+   ```bash
+   deactivate
+   ```
+
 ---
+
+For more information on CLI usage and options, see the rest of this document.
 
 For questions or contributions, see the project documentation or contact the maintainers. 

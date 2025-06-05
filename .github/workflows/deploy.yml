@@ -51,4 +51,14 @@ jobs:
           for group in $(aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/" --query 'logGroups[*].logGroupName' --output text); do
             echo "Setting retention for $group to 14 days..."
             aws logs put-retention-policy --log-group-name "$group" --retention-in-days 14
-          done 
+          done
+      - name: Store CLI config in AWS Secrets Manager
+        # SECURITY: This step stores resource IDs (not secrets) in AWS Secrets Manager for CLI use.
+        # Do NOT print or echo the values to logs. Only the secret name is visible in logs.
+        # The secret is only accessible to authorized users/roles (e.g., CLI admins).
+        run: |
+          CONFIG_JSON=$(aws cloudformation describe-stacks --stack-name $STACK_NAME --region $AWS_REGION \
+            --query "Stacks[0].Outputs[?OutputKey=='UserPoolId' || OutputKey=='UserPoolClientId' || OutputKey=='IdentityPoolId' || OutputKey=='ApiKeysTableName'].[OutputKey,OutputValue]" \
+            --output json | jq -r 'map({(.[0]): .[1]}) | add | @json')
+          aws secretsmanager create-secret --name /pennyworth/$STACK_NAME/cli-config --secret-string "$CONFIG_JSON" \
+            || aws secretsmanager put-secret-value --secret-id /pennyworth/$STACK_NAME/cli-config --secret-string "$CONFIG_JSON" 

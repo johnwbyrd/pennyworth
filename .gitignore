@@ -1,4 +1,7 @@
 # Ignore Lambda build dependencies
 
 # Ignore SAM build artifacts
-.aws-sam/ 
+.aws-sam/
+
+# Ignore Python virtual environments
+venv/ 
