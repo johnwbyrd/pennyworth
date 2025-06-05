@@ -1,4 +1,4 @@
 # Ignore Lambda build dependencies
 
-# Ignore build artifacts
-build/ 
+# Ignore SAM build artifacts
+.aws-sam/ 
