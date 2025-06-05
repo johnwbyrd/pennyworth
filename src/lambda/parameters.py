@@ -67,7 +67,8 @@ def protected_handler(event, context):
             audience=audience,
             issuer=issuer,
         )
-        # Optionally, check claims here (groups, etc.)
+        # Log claims to CloudWatch
+        print(f"Validated JWT claims: {json.dumps(claims)}")
     except Exception as e:
         return {"statusCode": 401, "body": json.dumps({"error": f"Invalid or expired token: {e}"})}
     return {
