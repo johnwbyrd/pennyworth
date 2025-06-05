@@ -48,5 +48,9 @@ jobs:
       - name: Set Lambda log retention to 14 days
         run: |
           for group in $(aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/" --query 'logGroups[*].logGroupName' --output text); do
-            aws logs put-retention-policy --log-group-name "$group" --retention-in-days 14
+            if output=$(aws logs put-retention-policy --log-group-name "$group" --retention-in-days 14 2>&1); then
+              echo "[INFO] Set retention for $group to 14 days."
+            else
+              echo "[ERROR] Failed to set retention for $group. Details: $output" >&2
+            fi
           done 
