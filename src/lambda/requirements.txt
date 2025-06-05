@@ -1,1 +1,1 @@
-liteLLM==1.71.1-stable 
+liteLLM==1.71.3 
