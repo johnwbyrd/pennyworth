@@ -4,4 +4,7 @@
 .aws-sam/
 
 # Ignore Python virtual environments
-venv/ 
+venv/
+
+# Ignore Python bytecode files
+__pycache__/ 

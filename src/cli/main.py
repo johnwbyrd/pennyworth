@@ -1,8 +1,16 @@
 import os
 import typer
 from typing import Optional
+import requests
+import json
+from .auth import login_flow
 
 app = typer.Typer(help="Pennyworth API Key Management CLI.")
+
+# Global config for stack and region
+cli_config = {
+    "api_url": os.environ.get("PENNYWORTH_API_URL", "https://api.example.com"),
+}
 
 # Global option to disable rich/fancy output
 plain_output: bool = False
@@ -15,16 +23,37 @@ def _set_plain_output(plain: bool):
         os.environ["CLICOLOR"] = "0"
         os.environ["NO_COLOR"] = "1"
 
+# Fetch config from the well-known endpoint at startup
+well_known_url = f"{cli_config['api_url']}/v1/well-known/parameters.json"
+try:
+    resp = requests.get(well_known_url, timeout=5)
+    resp.raise_for_status()
+    cognito_config = resp.json()
+except Exception as e:
+    raise RuntimeError(f"Failed to fetch Cognito config from {well_known_url}: {e}")
+
 @app.callback()
 def main(
     plain: bool = typer.Option(
         False,
         "--plain",
         help="Disable color and rich formatting for output. Equivalent to setting NO_COLOR=1."
+    ),
+    stack: str = typer.Option(
+        os.environ.get("PENNYWORTH_STACK_NAME", "pennyworth-prod"),
+        "--stack",
+        help="CloudFormation stack name (for display only)."
+    ),
+    region: str = typer.Option(
+        cognito_config.get("region", "us-west-2"),
+        "--region",
+        help="AWS region for the CLI config (for display only)."
     )
 ):
-    """Pennyworth CLI entry point. Use --plain for minimal output."""
+    """Pennyworth CLI entry point. Use --plain for minimal output. Use --stack and --region to select environment."""
     _set_plain_output(plain)
+    cli_config["stack_name"] = stack
+    cli_config["region"] = region
 
 @app.command()
 def create(
@@ -35,11 +64,12 @@ def create(
     output: str = typer.Option("text", "--output", "-o", help="Output format: text or json.")
 ):
     """Create a new API key."""
-    # TODO: Implement key creation logic
+    creds = login_flow(cognito_config)
+    # TODO: Implement key creation logic using creds
     if output == "json":
-        print("{}")
+        print(json.dumps({"aws_creds": creds}, indent=2))
     else:
-        print("[create] (no-op)")
+        print("[create] (no-op, creds obtained)")
 
 @app.command()
 def revoke(
@@ -59,11 +89,12 @@ def audit(
     output: str = typer.Option("text", "--output", "-o", help="Output format: text or json.")
 ):
     """Audit all API keys and their metadata."""
-    # TODO: Implement audit logic
+    creds = login_flow(cognito_config)
+    # TODO: Implement audit logic using creds
     if output == "json":
-        print("[]")
+        print(json.dumps({"aws_creds": creds}, indent=2))
     else:
-        print("[audit] (no-op)")
+        print("[audit] (no-op, creds obtained)")
 
 @app.command()
 def status(
