@@ -34,17 +34,19 @@ jobs:
           python-version: '3.11'
       - name: Build and package Lambda
         run: sam build --use-container
-      - name: Deploy with SAM
+      - name: Deploy with SAM (censor output values)
         run: |
+          # Censor all lines starting with 'Value' in the sam deploy output to avoid leaking stack outputs in logs.
           sam deploy --stack-name $STACK_NAME \
-            --capabilities CAPABILITY_IAM \
             --region $AWS_REGION \
+            --capabilities CAPABILITY_IAM \
             --resolve-s3 \
             --no-fail-on-empty-changeset \
             --parameter-overrides \
               BaseDomain=$BASE_DOMAIN \
               AcmCertificateArn=$ACM_CERTIFICATE_ARN \
-              Route53HostedZoneId=$ROUTE53_HOSTED_ZONE_ID 
+              Route53HostedZoneId=$ROUTE53_HOSTED_ZONE_ID \
+          | sed -E 's/^(Value[[:space:]]*:[[:space:]]*).*/\1***/'
       - name: Set Lambda log retention to 14 days
         run: |
           set -euo pipefail
