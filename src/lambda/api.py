@@ -1,5 +1,10 @@
+import os
+
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver, Response, Middleware
+from aws_lambda_powertools.event_handler.api_gateway import Response as PowertoolsResponse
+
 from utils import logger
+from errors import APIException, ForbiddenException, BadRequestException, NotFoundException
 from auth import require_api_key_auth, require_cognito_jwt
 from handlers.openai import (
     list_models_handler,
@@ -10,10 +15,8 @@ from handlers.openai import (
 from handlers.mcp import mcp_handler
 from handlers.well_known import well_known_handler
 from handlers.protected import protected_handler
-import os
+from handlers.version import version_handler
 from version import API_SEMANTIC_VERSION
-from aws_lambda_powertools.event_handler.api_gateway import Response as PowertoolsResponse
-from errors import APIException, ForbiddenException, BadRequestException, NotFoundException
 
 app = APIGatewayHttpResolver()
 
@@ -55,7 +58,15 @@ def public_auth_middleware(handler, event, context):
     """
     return handler(event, context)
 
+# --- End Middleware definitions ---
+
+# --- Handler utility ---
 def wrap_handler(handler, *args, **kwargs):
+    """
+    Calls the given handler function, expecting a (body, status) tuple,
+    and returns a properly formatted Response for API Gateway.
+    This reduces boilerplate in endpoint functions.
+    """
     body, status = handler(*args, **kwargs)
     return Response(status_code=status, content=body)
 
@@ -95,11 +106,7 @@ def protected():
 
 @app.get(f"/{API_VER}/version", middlewares=[api_key_auth_middleware])
 def version():
-    return Response(status_code=200, content={
-        "Version": API_VER,
-        "SemanticVersion": API_SEMANTIC_VERSION,
-        "BuildId": PENNYWORTH_BUILD_ID
-    })
+    return wrap_handler(version_handler)
 
 # --- Catch-all for unsupported endpoints ---
 
