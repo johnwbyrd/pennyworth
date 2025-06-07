@@ -6,11 +6,7 @@ import base64
 import urllib.request
 from jose import jwt
 from utils import logger
-
-class ForbiddenException(Exception):
-    def __init__(self, message):
-        logger.warning(message)
-        super().__init__(message)
+from errors import ForbiddenException
 
 # --- Robust Bearer Token Extraction Helper ---
 def extract_bearer_token(headers):

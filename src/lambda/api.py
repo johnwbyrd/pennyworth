@@ -1,6 +1,6 @@
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver, Response, Middleware
 from utils import logger
-from auth import require_api_key_auth, require_cognito_jwt, ForbiddenException
+from auth import require_api_key_auth, require_cognito_jwt
 from handlers.openai import (
     list_models_handler,
     chat_completions_handler,
@@ -13,6 +13,7 @@ from handlers.protected import protected_handler
 import os
 from version import API_SEMANTIC_VERSION
 from aws_lambda_powertools.event_handler.api_gateway import Response as PowertoolsResponse
+from errors import APIException, ForbiddenException, BadRequestException, NotFoundException
 
 app = APIGatewayHttpResolver()
 
@@ -86,10 +87,10 @@ def not_implemented():
 
 # --- Exception handlers ---
 
-@app.exception_handler(ForbiddenException)
-def handle_forbidden_error(ex):
+@app.exception_handler(APIException)
+def handle_api_exception(ex):
     return PowertoolsResponse(
-        status_code=403,
+        status_code=ex.status_code,
         content={"error": str(ex)}
     )
 

@@ -1,3 +1,5 @@
 # handlers/mcp.py
+from errors import APIException
+
 def mcp_handler(path):
-    return {"error": f"MCP endpoint '{path}' not implemented yet."}, 501 
+    raise APIException(f"MCP endpoint '{path}' not implemented yet.") 
