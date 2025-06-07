@@ -23,14 +23,36 @@ PENNYWORTH_BUILD_ID = os.environ.get("PENNYWORTH_BUILD_ID", "unknown")
 
 # --- Middleware definitions ---
 
+# Middleware for endpoints requiring a valid API key (Bearer token).
+# If authentication fails, raises ForbiddenException (403).
 @Middleware
 def api_key_auth_middleware(handler, event, context):
+    """
+    Enforces API key authentication for protected endpoints.
+    If the API key is missing or invalid, raises ForbiddenException (403).
+    """
     require_api_key_auth(event)
     return handler(event, context)
 
+# Middleware for endpoints requiring a valid Cognito JWT.
+# If authentication fails, raises ForbiddenException (403).
 @Middleware
 def cognito_jwt_auth_middleware(handler, event, context):
+    """
+    Enforces Cognito JWT authentication for protected endpoints.
+    If the JWT is missing, invalid, or expired, raises ForbiddenException (403).
+    """
     require_cognito_jwt(event)
+    return handler(event, context)
+
+# Middleware for public endpoints that require no authentication.
+# Allows all requests to proceed.
+@Middleware
+def public_auth_middleware(handler, event, context):
+    """
+    Allows all requests (no authentication enforced).
+    Use for public endpoints that do not require authentication.
+    """
     return handler(event, context)
 
 def wrap_handler(handler, *args, **kwargs):
@@ -63,7 +85,7 @@ def mcp():
 
 # --- Parameters endpoints ---
 
-@app.get(f"/{API_VER}/parameters/well-known")
+@app.get(f"/{API_VER}/parameters/well-known", middlewares=[public_auth_middleware])
 def well_known():
     return wrap_handler(well_known_handler)
 
