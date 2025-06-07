@@ -1,6 +1,7 @@
 import json
-import litellm
 import logging
+from openai import handle_openai_request  # to be implemented
+from mcp import handle_mcp_request      # to be implemented
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -13,34 +14,23 @@ logger.setLevel(logging.INFO)
 def lambda_handler(event, context):
     logger.info("Received event: %s", json.dumps(event))
     try:
-        if event.get("httpMethod") == "GET":
+        path = event.get("path") or event.get("requestContext", {}).get("http", {}).get("path", "")
+        if path.startswith("/v1/"):
+            # Route to OpenAI-compatible handler
+            return handle_openai_request(event, context)
+        elif path.startswith("/mcp/"):
+            # Route to MCP handler
+            return handle_mcp_request(event, context)
+        elif event.get("httpMethod") == "GET":
             return {
                 "statusCode": 200,
                 "body": json.dumps({"message": "pennyworth is running."})
             }
-
-        body = json.loads(event.get("body") or "{}")
-        prompt = body.get("prompt")
-        if not prompt:
-            logger.warning("Missing 'prompt' in request body: %s", body)
+        else:
             return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "Missing 'prompt' in request body."})
+                "statusCode": 404,
+                "body": json.dumps({"error": "Not found"})
             }
-
-        # Call Bedrock via LiteLLM (update model/provider as needed)
-        # Example: response = litellm.completion("your-model-id", prompt=prompt)
-        # For now, we'll use a placeholder response
-        response = {
-            "choices": [
-                {"text": f"Echo: {prompt}"}
-            ]
-        }
-        logger.info("Returning response: %s", json.dumps(response))
-        return {
-            "statusCode": 200,
-            "body": json.dumps(response)
-        }
     except Exception as e:
         logger.exception("Error in Lambda handler")
         return {

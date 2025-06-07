@@ -77,4 +77,8 @@ def protected_handler(event, context):
         "body": json.dumps({
             "ApiKeysTableName": os.environ["API_KEYS_TABLE"],
         })
-    } 
+    }
+
+# No changes needed for now, but add a note for future imports if this module needs to use shared utils/auth/model_router.
+# from utils import json_response  # Example for future use
+# from auth import validate_api_key 
