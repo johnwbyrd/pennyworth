@@ -1,6 +1,6 @@
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver, Response, Middleware
 from utils import logger
-from auth import require_api_key_auth, require_cognito_jwt
+from auth import require_api_key_auth, require_cognito_jwt, ForbiddenException
 from handlers.openai import (
     list_models_handler,
     chat_completions_handler,
@@ -12,6 +12,7 @@ from handlers.well_known import well_known_handler
 from handlers.protected import protected_handler
 import os
 from version import API_SEMANTIC_VERSION
+from aws_lambda_powertools.event_handler.api_gateway import Response as PowertoolsResponse
 
 app = APIGatewayHttpResolver()
 
@@ -82,6 +83,15 @@ def version():
 @app.any(f"/{API_VER}/{{proxy+}}", middlewares=[api_key_auth_middleware])
 def not_implemented():
     return Response(status_code=404, content={"error": f"Endpoint '{app.current_event.path}' not implemented."})
+
+# --- Exception handlers ---
+
+@app.exception_handler(ForbiddenException)
+def handle_forbidden_error(ex):
+    return PowertoolsResponse(
+        status_code=403,
+        content={"error": str(ex)}
+    )
 
 # --- Lambda entrypoint ---
 def lambda_handler(event, context):

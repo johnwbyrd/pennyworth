@@ -7,6 +7,11 @@ import urllib.request
 from jose import jwt
 from utils import logger
 
+class ForbiddenException(Exception):
+    def __init__(self, message):
+        logger.warning(message)
+        super().__init__(message)
+
 # --- Robust Bearer Token Extraction Helper ---
 def extract_bearer_token(headers):
     """
@@ -39,11 +44,9 @@ def require_api_key_auth(event):
     headers = event.get("headers", {})
     api_key = extract_bearer_token(headers)
     if not api_key:
-        logger.warning("Missing or invalid API key in Authorization header.")
-        raise Exception("Missing or invalid API key.")
+        raise ForbiddenException("Missing or invalid API key in Authorization header.")
     # TODO: Implement real API key validation (DynamoDB lookup)
-    logger.warning("Unauthorized: API key validation not implemented.")
-    raise Exception("Unauthorized: API key validation not implemented.")
+    raise ForbiddenException("Unauthorized: API key validation not implemented.")
 
 # Cognito JWT validation helpers
 _JWKS = None
@@ -67,14 +70,12 @@ def require_cognito_jwt(event):
     headers = event.get("headers", {})
     token = extract_bearer_token(headers)
     if not token:
-        logger.warning("Missing or invalid Authorization header for Cognito JWT.")
-        raise Exception("Missing or invalid Authorization header.")
+        raise ForbiddenException("Missing or invalid Authorization header.")
     region = os.environ.get("AWS_REGION")
     user_pool_id = os.environ.get("USER_POOL_ID")
     audience = os.environ.get("USER_POOL_CLIENT_ID")
     if not region or not user_pool_id or not audience:
-        logger.error(f"Missing required Cognito environment variables: region={region}, user_pool_id={user_pool_id}, audience={audience}")
-        raise Exception("Cognito JWT validation misconfigured: missing region, user pool ID, or audience.")
+        raise ForbiddenException("Cognito JWT validation misconfigured: missing region, user pool ID, or audience.")
     try:
         jwks = get_jwks()
         issuer = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}"
@@ -82,8 +83,7 @@ def require_cognito_jwt(event):
         kid = headers_unverified["kid"]
         key = next((k for k in jwks["keys"] if k["kid"] == kid), None)
         if not key:
-            logger.warning("Public key not found in JWKS for Cognito JWT.")
-            raise Exception("Public key not found in JWKS.")
+            raise ForbiddenException("Public key not found in JWKS.")
         # Validate and decode the JWT
         claims = jwt.decode(
             token,
@@ -95,14 +95,4 @@ def require_cognito_jwt(event):
         logger.info(f"Validated Cognito JWT claims: {json.dumps(claims)}")
         return claims
     except Exception as e:
-        logger.warning(f"Invalid or expired Cognito JWT: {e}")
-        raise Exception(f"Invalid or expired Cognito JWT: {e}")
-
-# Old stub for reference
-# def validate_api_key(api_key):
-#     """
-#     Validate the given API key by hashing and looking up in DynamoDB.
-#     Returns metadata if valid, raises error if not.
-#     """
-#     # TODO: Implement DynamoDB hash lookup and status check
-#     raise NotImplementedError("API key validation not implemented yet.") 
+        raise ForbiddenException(f"Invalid or expired Cognito JWT: {e}") 
