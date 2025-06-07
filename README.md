@@ -7,13 +7,13 @@
 
 [//]: # (SPDX-License-Identifier: AGPL-3.0-only)
 
-**pennyworth** is a secure, serverless API proxy infrastructure-as-code (IaC) designed to make the latest large language models—such as AWS Bedrock and others—available through a single, OpenAI-compatible interface. The project is built for individuals and teams of programmers or other users who want to access modern LLMs from one convenient API endpoint, whether for code editing, chat, or other AI-powered workflows.
+**pennyworth** is all the LLMs, for cheap people.
 
-At the heart of pennyworth is a zero-cost-at-rest philosophy: when the system is not in use, it incurs no compute cost. This is achieved by leveraging AWS serverless technologies—Lambda, API Gateway, DynamoDB, and Route 53—so you only pay for what you use. This infrastructure-as-code is fully automated with GitHub Actions deploying via AWS SAM and secure, keyless OIDC. Custom domains and TLS are handled through Route 53 and ACM, making it easy to deploy a branded, secure endpoint for your team or organization.
+**pennyworth** is a prototype for a secure, serverless API proxy infrastructure-as-code (IaC) designed to make the latest large language models -- such as AWS Bedrock and others -- available through a single, OpenAI-compatible interface. The project is built for individuals and teams of programmers or other users who want to access modern LLMs from one convenient API endpoint, whether for code editing, chat, or other AI-powered workflows.
 
-Security and cost-awareness are core to the design. API keys are managed securely (hashed, never stored in plaintext), IAM roles are set up for least privilege, and all configuration is handled through environment variables and secrets—never hard-coded. The system is designed to be extensible, so you can add new LLM providers as they become available, and to support both individual and team usage with per-user or per-key cost tracking and reporting.
+At the heart of pennyworth is a zero-cost-at-rest philosophy: when the system is not in use, it incurs no compute cost. This is achieved by leveraging AWS serverless technologies -- Lambda, API Gateway, DynamoDB, and Route 53 -- so you only pay for what you use. This infrastructure-as-code is fully automated, with GitHub Actions deploying via AWS SAM and secure, keyless OIDC. Custom domains and TLS are handled through Route 53 and ACM, making it easy to deploy a branded, secure endpoint for your team or organization.
 
-Whether you're a solo developer, a small team, or an organization looking to provide modern LLM access to your users, pennyworth offers a robust, maintainable, and future-proof foundation. For full details on architecture, deployment, security, and usage, see the documentation below.
+Security and cost-awareness are core to the design. API keys are managed securely (hashed, never stored in plaintext), IAM roles are set up for least privilege.  All configuration is handled through environment variables and secrets: never hard-coded.  The system is designed to be extensible, so you can add new LLM providers as they become available, and to support both individual and team usage with per-user or per-key cost tracking and reporting.
 
 For detailed documentation, see:
 
@@ -31,3 +31,12 @@ For detailed documentation, see:
 ## License
 
 This project is licensed under the GNU Affero General Public License v3.0 only. See [LICENSE](LICENSE) for details. 
+
+### Human-Readable AGPL 3.0 Summary
+
+- **You are free to use, modify, and share this code** as long as you comply with the AGPL 3.0 license.
+- **If you modify this code and run it as a service (including over a network), you must also make your modified source code available under the AGPL 3.0.**
+- **Closed-source forks and proprietary versions of this project are not permitted.**
+- **Selling a closed-source or proprietary service based on this code is outside the scope of this license and is not allowed.**
+- **If you build a service or product using this code, you must provide your users with access to the complete, corresponding source code under the same AGPL 3.0 license.**
+- For more information, see the [GNU AGPL v3.0 FAQ](https://www.gnu.org/licenses/agpl-3.0-faq.html). 
