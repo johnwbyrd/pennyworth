@@ -1,10 +1,9 @@
 import json
-import logging
+from aws_lambda_powertools import Logger
 from billing import track_usage
 
-# Set up a logger for the Lambda package
-logger = logging.getLogger("pennyworth")
-# In the future, a custom handler can be added in log.py for CloudWatch or other destinations
+# Set up Powertools logger for the Lambda package
+logger = Logger(service="pennyworth")
 
 def json_response(status_code, body_dict):
     return {

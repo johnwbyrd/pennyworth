@@ -60,7 +60,7 @@ def main(
         help="CloudFormation stack name (for display only)."
     ),
     region: str = typer.Option(
-        cognito_config.get("region", "us-west-2"),
+        cognito_config.get("Region", "us-west-2"),
         "--region",
         help="AWS region for the CLI config (for display only)."
     )
