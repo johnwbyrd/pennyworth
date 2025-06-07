@@ -10,8 +10,14 @@ from handlers.openai import (
 from handlers.mcp import mcp_handler
 from handlers.well_known import well_known_handler
 from handlers.protected import protected_handler
+import os
+from version import API_SEMANTIC_VERSION
 
 app = APIGatewayHttpResolver()
+
+PENNYWORTH_API_VERSION = os.environ.get("PENNYWORTH_API_VERSION", "v1")
+API_VER = PENNYWORTH_API_VERSION  # Local alias for brevity
+PENNYWORTH_BUILD_ID = os.environ.get("PENNYWORTH_BUILD_ID", "unknown")
 
 # --- Middleware definitions ---
 
@@ -25,51 +31,55 @@ def cognito_jwt_auth_middleware(handler, event, context):
     require_cognito_jwt(event)
     return handler(event, context)
 
+def wrap_handler(handler, *args, **kwargs):
+    body, status = handler(*args, **kwargs)
+    return Response(status_code=status, content=body)
+
 # --- OpenAI-compatible endpoints ---
 
-@app.get("/v1/models", middlewares=[api_key_auth_middleware])
+@app.get(f"/{API_VER}/models", middlewares=[api_key_auth_middleware])
 def list_models():
-    body, status = list_models_handler()
-    return Response(status_code=status, content=body)
+    return wrap_handler(list_models_handler)
 
-@app.post("/v1/chat/completions", middlewares=[api_key_auth_middleware])
+@app.post(f"/{API_VER}/chat/completions", middlewares=[api_key_auth_middleware])
 def chat_completions():
-    body, status = chat_completions_handler(app.current_event.json_body or {})
-    return Response(status_code=status, content=body)
+    return wrap_handler(chat_completions_handler, app.current_event.json_body or {})
 
-@app.post("/v1/completions", middlewares=[api_key_auth_middleware])
+@app.post(f"/{API_VER}/completions", middlewares=[api_key_auth_middleware])
 def completions():
-    body, status = completions_handler(app.current_event.json_body or {})
-    return Response(status_code=status, content=body)
+    return wrap_handler(completions_handler, app.current_event.json_body or {})
 
-@app.post("/v1/embeddings", middlewares=[api_key_auth_middleware])
+@app.post(f"/{API_VER}/embeddings", middlewares=[api_key_auth_middleware])
 def embeddings():
-    body, status = embeddings_handler(app.current_event.json_body or {})
-    return Response(status_code=status, content=body)
+    return wrap_handler(embeddings_handler, app.current_event.json_body or {})
 
 # --- MCP endpoints ---
 
-@app.any("/v1/mcp/{proxy+}", middlewares=[api_key_auth_middleware])
+@app.any(f"/{API_VER}/mcp/{{proxy+}}", middlewares=[api_key_auth_middleware])
 def mcp():
-    path = app.current_event.path
-    body, status = mcp_handler(path)
-    return Response(status_code=status, content=body)
+    return wrap_handler(mcp_handler, app.current_event.path)
 
 # --- Parameters endpoints ---
 
-@app.get("/v1/parameters/well-known")
+@app.get(f"/{API_VER}/parameters/well-known")
 def well_known():
-    body, status = well_known_handler()
-    return Response(status_code=status, content=body)
+    return wrap_handler(well_known_handler)
 
-@app.get("/v1/parameters/protected", middlewares=[cognito_jwt_auth_middleware])
+@app.get(f"/{API_VER}/parameters/protected", middlewares=[cognito_jwt_auth_middleware])
 def protected():
-    body, status = protected_handler()
-    return Response(status_code=status, content=body)
+    return wrap_handler(protected_handler)
+
+@app.get(f"/{API_VER}/version", middlewares=[api_key_auth_middleware])
+def version():
+    return Response(status_code=200, content={
+        "Version": API_VER,
+        "SemanticVersion": API_SEMANTIC_VERSION,
+        "BuildId": PENNYWORTH_BUILD_ID
+    })
 
 # --- Catch-all for unsupported endpoints ---
 
-@app.any("/v1/{proxy+}", middlewares=[api_key_auth_middleware])
+@app.any(f"/{API_VER}/{{proxy+}}", middlewares=[api_key_auth_middleware])
 def not_implemented():
     return Response(status_code=404, content={"error": f"Endpoint '{app.current_event.path}' not implemented."})
 

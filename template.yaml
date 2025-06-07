@@ -9,6 +9,21 @@ Parameters:
   BaseDomain:
     Type: String
     Description: The base domain for your API (e.g., example.com). Used to create the custom API Gateway domain (api.example.com).
+  # API version for all routes
+  PennyworthApiVersion:
+    Type: String
+    Default: v1
+    Description: The version prefix for all API routes (e.g., v1).
+  # Semantic version for the API
+  PennyworthApiSemanticVersion:
+    Type: String
+    Default: 0.1.0
+    Description: The semantic version for the API (e.g., 0.1.0).
+  # Build identifier (e.g., GitHub SHA)
+  PennyworthBuildId:
+    Type: String
+    Default: unknown
+    Description: The build identifier (commit SHA, run number, etc.) for this deployment.
 
   # ACM certificate ARN for HTTPS
   # Must be in the same region as API Gateway
@@ -171,14 +186,14 @@ Resources:
         - Key: Component
           Value: APIKeys
 
-  # Lambda function that proxies OpenAI-compatible API requests to AWS Bedrock.
-  LiteLLMProxyFunction:
+  # Lambda function that handles all API requests (single entry point).
+  PennyworthApiHandler:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: app.lambda_handler
+      Handler: api.lambda_handler
       Runtime: python3.11
       CodeUri: src/lambda/
-      Description: LiteLLM proxy for OpenAI-compatible API
+      Description: Unified API handler for all Pennyworth endpoints
       MemorySize: 512
       Timeout: 30
       Environment:
@@ -187,6 +202,9 @@ Resources:
           USER_POOL_ID: !Ref PennyworthUserPool
           USER_POOL_CLIENT_ID: !Ref PennyworthUserPoolClient
           IDENTITY_POOL_ID: !Ref PennyworthIdentityPool
+          PENNYWORTH_API_VERSION: !Ref PennyworthApiVersion
+          PENNYWORTH_API_SEMANTIC_VERSION: !Ref PennyworthApiSemanticVersion
+          PENNYWORTH_BUILD_ID: !Ref PennyworthBuildId
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ApiKeysTable
@@ -199,13 +217,23 @@ Resources:
         ProxyApi:
           Type: Api
           Properties:
-            Path: /v1/{proxy+}
+            Path: /{PennyworthApiVersion}/{proxy+}
             Method: any
         MCPApi:
           Type: Api
           Properties:
-            Path: /v1/mcp/{proxy+}
+            Path: /{PennyworthApiVersion}/mcp/{proxy+}
             Method: any
+        WellKnownApi:
+          Type: Api
+          Properties:
+            Path: /{PennyworthApiVersion}/parameters/well-known
+            Method: get
+        ProtectedApi:
+          Type: Api
+          Properties:
+            Path: /{PennyworthApiVersion}/parameters/protected
+            Method: get
       Tags:
         Project: Pennyworth
         Environment: !Ref Environment
@@ -249,38 +277,6 @@ Resources:
       AliasTarget:
         DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
         HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
-
-  # Lambda function that serves public and protected API parameter endpoints for clients.
-  WellKnownParametersFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: parameters.lambda_handler
-      Runtime: python3.11
-      CodeUri: src/lambda/
-      Description: Returns public parameters for CLI and clients
-      MemorySize: 128
-      Timeout: 5
-      Environment:
-        Variables:
-          USER_POOL_ID: !Ref PennyworthUserPool
-          USER_POOL_CLIENT_ID: !Ref PennyworthUserPoolClient
-          IDENTITY_POOL_ID: !Ref PennyworthIdentityPool
-      Events:
-        WellKnownApi:
-          Type: Api
-          Properties:
-            Path: /v1/parameters/well-known
-            Method: get
-        ProtectedApi:
-          Type: Api
-          Properties:
-            Path: /v1/parameters/protected
-            Method: get
-      Tags:
-        Project: Pennyworth
-        Environment: !Ref Environment
-        StackName: !Ref AWS::StackName
-        Component: WellKnown
 
 Outputs:
   # Cognito User Pool ID
