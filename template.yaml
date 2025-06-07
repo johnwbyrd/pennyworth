@@ -33,7 +33,7 @@ Parameters:
     Description: The deployment environment (dev or prod). Controls resource naming and some configuration.
 
 Resources:
-  # Cognito User Pool for authentication
+  # Cognito User Pool for authentication and management of CLI/admin users.
   PennyworthUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -67,7 +67,7 @@ Resources:
       # UserPoolAddOns:
       #   AdvancedSecurityMode: ENFORCED
 
-  # Cognito User Pool Client for CLI authentication
+  # User Pool Client that enables the CLI to authenticate users and obtain tokens from Cognito.
   PennyworthUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -79,7 +79,7 @@ Resources:
         - ALLOW_REFRESH_TOKEN_AUTH
       PreventUserExistenceErrors: ENABLED
 
-  # Cognito Identity Pool for temporary AWS credentials
+  # Identity Pool that issues temporary AWS credentials to authenticated users from the User Pool.
   PennyworthIdentityPool:
     Type: AWS::Cognito::IdentityPool
     Properties:
@@ -89,7 +89,7 @@ Resources:
         - ClientId: !Ref PennyworthUserPoolClient
           ProviderName: !GetAtt PennyworthUserPool.ProviderName
 
-  # IAM Role for CLI users (least privilege)
+  # IAM role assumed by authenticated CLI users, granting access to manage API keys in DynamoDB.
   PennyworthCliUserRole:
     Type: AWS::IAM::Role
     Properties:
@@ -129,7 +129,7 @@ Resources:
         - Key: Component
           Value: Authentication
 
-  # Attach both roles to the Identity Pool (admin for future, CLI for users)
+  # Attaches the CLI user IAM role to authenticated users in the Identity Pool.
   IdentityPoolRoleAttachment:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
     Properties:
@@ -137,7 +137,7 @@ Resources:
       Roles:
         authenticated: !GetAtt PennyworthCliUserRole.Arn
 
-  # DynamoDB table for API keys
+  # DynamoDB table for storing and managing API keys and their metadata.
   ApiKeysTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -171,7 +171,7 @@ Resources:
         - Key: Component
           Value: APIKeys
 
-  # Lambda function for LiteLLM proxy
+  # Lambda function that proxies OpenAI-compatible API requests to AWS Bedrock.
   LiteLLMProxyFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -212,7 +212,7 @@ Resources:
         StackName: !Ref AWS::StackName
         Component: APIProxy
 
-  # API Gateway custom domain
+  # Custom domain for the API, providing a user-friendly endpoint (e.g., api.example.com).
   ApiCustomDomain:
     Type: AWS::ApiGateway::DomainName
     Properties:
@@ -230,6 +230,7 @@ Resources:
         - Key: Component
           Value: API
 
+  # Maps the custom domain to the deployed API Gateway stage.
   ApiBasePathMapping:
     Type: AWS::ApiGateway::BasePathMapping
     DependsOn: ServerlessRestApiProdStage
@@ -238,6 +239,7 @@ Resources:
       RestApiId: !Ref ServerlessRestApi
       Stage: Prod
 
+  # Route 53 DNS record that points the custom domain to the API Gateway endpoint.
   ApiCustomDomainRecord:
     Type: AWS::Route53::RecordSet
     Properties:
@@ -248,6 +250,7 @@ Resources:
         DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
         HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
 
+  # Lambda function that serves public and protected API parameter endpoints for clients.
   WellKnownParametersFunction:
     Type: AWS::Serverless::Function
     Properties:
