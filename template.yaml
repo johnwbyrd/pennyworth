@@ -204,7 +204,7 @@ Resources:
         MCPApi:
           Type: Api
           Properties:
-            Path: /mcp/{proxy+}
+            Path: /v1/mcp/{proxy+}
             Method: any
       Tags:
         Project: Pennyworth
