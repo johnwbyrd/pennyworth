@@ -1,3 +1,0 @@
-# handlers/mcp.py
-def not_implemented_handler(path):
-    return {"error": f"MCP endpoint '{path}' not implemented yet."}, 501 
