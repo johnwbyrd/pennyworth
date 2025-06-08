@@ -2,6 +2,7 @@ import os
 import json
 
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, Response
+from aws_lambda_powertools.event_handler.exceptions import NotFoundError
 
 from utils import logger
 from errors import APIException, ForbiddenException, BadRequestException, NotFoundException
@@ -185,8 +186,8 @@ def get_apikey_status(user_id):
 # --- Catch-all for unsupported endpoints ---
 
 @app.not_found
-def not_found():
-    return SafeResponse(status_code=404, message=f"Endpoint '{app.current_event.path}' not implemented.")
+def not_found(e: NotFoundError):
+    return SafeResponse(status_code=404, message=str(e))
 
 # --- Exception handlers ---
 
