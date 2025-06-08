@@ -187,7 +187,7 @@ def get_apikey_status(user_id):
 
 @app.not_found
 def not_found(e: NotFoundError):
-    return SafeResponse(status_code=404, message=e.message)
+    return SafeResponse(status_code=404, message="Not Found")
 
 # --- Exception handlers ---
 
