@@ -184,8 +184,8 @@ def get_apikey_status(user_id):
 
 # --- Catch-all for unsupported endpoints ---
 
-@app.route(f"/{API_VER}/.+}", method=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
-def not_implemented():
+@app.not_found
+def not_found():
     return SafeResponse(status_code=404, message=f"Endpoint '{app.current_event.path}' not implemented.")
 
 # --- Exception handlers ---
