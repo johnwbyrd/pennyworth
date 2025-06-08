@@ -24,7 +24,6 @@ For detailed documentation, see:
 - [Security Guide](doc/security.md)
 - [Cost Analysis](doc/cost.md)
 - [CLI Tool Design](doc/cli-tool.md)
-- [CLI Tool Authentication & Permissions](doc/cli-tool-auth.md)
 
 ---
 
