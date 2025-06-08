@@ -7,6 +7,8 @@ import urllib.request
 from jose import jwt
 from utils import logger
 from errors import ForbiddenException
+import boto3
+from botocore.exceptions import ClientError
 
 # --- Robust Bearer Token Extraction Helper ---
 def extract_bearer_token(headers):
@@ -91,4 +93,45 @@ def require_cognito_jwt(event):
         logger.info(f"Validated Cognito JWT claims: {json.dumps(claims)}")
         return claims
     except Exception as e:
-        raise ForbiddenException(f"Invalid or expired Cognito JWT: {e}") 
+        raise ForbiddenException(f"Invalid or expired Cognito JWT: {e}")
+
+def get_user_boto3_session(event):
+    """
+    Given a Lambda event, extract the Cognito JWT and exchange it for AWS credentials
+    using the Cognito Identity Pool. Returns a boto3.Session using those credentials.
+    Explicitly validates the JWT before exchanging.
+    """
+    # Explicitly validate the JWT
+    require_cognito_jwt(event)
+    headers = event.get("headers", {})
+    token = extract_bearer_token(headers)
+    if not token:
+        raise ForbiddenException("Missing or invalid Authorization header.")
+
+    identity_pool_id = os.environ.get("IDENTITY_POOL_ID")
+    region = os.environ.get("AWS_REGION")
+    user_pool_id = os.environ.get("USER_POOL_ID")
+    if not identity_pool_id or not region or not user_pool_id:
+        raise ForbiddenException("Missing Cognito Identity Pool configuration.")
+
+    cognito_identity = boto3.client("cognito-identity", region_name=region)
+    try:
+        resp = cognito_identity.get_id(
+            IdentityPoolId=identity_pool_id,
+            Logins={f'cognito-idp.{region}.amazonaws.com/{user_pool_id}': token}
+        )
+        identity_id = resp["IdentityId"]
+        creds_resp = cognito_identity.get_credentials_for_identity(
+            IdentityId=identity_id,
+            Logins={f'cognito-idp.{region}.amazonaws.com/{user_pool_id}': token}
+        )
+        creds = creds_resp["Credentials"]
+    except ClientError as e:
+        raise ForbiddenException("Could not obtain AWS credentials for user.")
+
+    return boto3.Session(
+        aws_access_key_id=creds["AccessKeyId"],
+        aws_secret_access_key=creds["SecretKey"],
+        aws_session_token=creds["SessionToken"],
+        region_name=region
+    ) 
