@@ -1,7 +1,6 @@
 import os
 
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, Response
-from aws_lambda_powertools.event_handler.api_gateway import Response as PowertoolsResponse
 
 from utils import logger
 from errors import APIException, ForbiddenException, BadRequestException, NotFoundException
@@ -168,7 +167,7 @@ def not_implemented():
 
 @app.exception_handler(APIException)
 def handle_api_exception(ex):
-    return PowertoolsResponse(
+    return Response(
         status_code=ex.status_code,
         body={"error": str(ex)}
     )
