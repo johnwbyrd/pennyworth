@@ -1,4 +1,4 @@
 # All modules in src/lambda are part of the same Lambda package
 liteLLM==1.71.3
 python-jose 
-aws-lambda-powertools==2.32.0 
+aws-lambda-powertools==3.14.0
