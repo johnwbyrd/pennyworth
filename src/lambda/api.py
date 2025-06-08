@@ -1,6 +1,6 @@
 import os
 
-from aws_lambda_powertools.event_handler import APIGatewayHttpResolver, Response, Middleware
+from aws_lambda_powertools.event_handler import APIGatewayHttpResolver, Response
 from aws_lambda_powertools.event_handler.api_gateway import Response as PowertoolsResponse
 
 from utils import logger
@@ -38,7 +38,7 @@ PENNYWORTH_BUILD_ID = os.environ.get("PENNYWORTH_BUILD_ID", "unknown")
 
 # Middleware for endpoints requiring a valid API key (Bearer token).
 # If authentication fails, raises ForbiddenException (403).
-@Middleware
+@app.middleware
 def api_key_auth_middleware(handler, event, context):
     """
     Enforces API key authentication for protected endpoints.
@@ -49,7 +49,7 @@ def api_key_auth_middleware(handler, event, context):
 
 # Middleware for endpoints requiring a valid Cognito JWT.
 # If authentication fails, raises ForbiddenException (403).
-@Middleware
+@app.middleware
 def cognito_jwt_auth_middleware(handler, event, context):
     """
     Enforces Cognito JWT authentication for protected endpoints.
@@ -60,7 +60,7 @@ def cognito_jwt_auth_middleware(handler, event, context):
 
 # Middleware for public endpoints that require no authentication.
 # Allows all requests to proceed.
-@Middleware
+@app.middleware
 def public_auth_middleware(handler, event, context):
     """
     Allows all requests (no authentication enforced).
@@ -68,7 +68,7 @@ def public_auth_middleware(handler, event, context):
     """
     return handler(event, context)
 
-@Middleware
+@app.middleware
 def user_session_middleware(handler, event, context):
     """
     Validates Cognito JWT and attaches a user-context boto3 session to the event.
