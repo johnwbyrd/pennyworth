@@ -191,7 +191,7 @@ def not_implemented():
 # --- Exception handlers ---
 
 @app.exception_handler(APIException)
-def handle_api_exception(ex):o
+def handle_api_exception(ex):
     return SafeResponse(status_code=ex.status_code, exception=ex)
 
 # --- Lambda entrypoint ---
