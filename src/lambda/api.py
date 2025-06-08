@@ -169,9 +169,10 @@ def not_implemented():
 def handle_api_exception(ex):
     return PowertoolsResponse(
         status_code=ex.status_code,
-        content={"error": str(ex)}
+        body={"error": str(ex)}
     )
 
 # --- Lambda entrypoint ---
 def lambda_handler(event, context):
+    logger.info({"msg": "lambda_handler invoked", "event": event})
     return app.resolve(event, context) 
