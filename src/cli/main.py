@@ -12,7 +12,7 @@ app = typer.Typer(help="Pennyworth API Key Management CLI.")
 
 # Global config for stack and region
 cli_config = {
-    "api_url": os.environ.get("PENNYWORTH_API_URL", "https://api.uproro.com"),
+    "api_url": f"https://api.{os.environ.get('BASE_DOMAIN', 'uproro.com')}",
 }
 
 # Global option to disable rich/fancy output

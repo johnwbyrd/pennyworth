@@ -1,0 +1,53 @@
+{
+  "info": {
+    "name": "Pennyworth API Tests",
+    "description": "Test collection for Pennyworth API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{cognito_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://{{base_domain}}/v1/users",
+              "protocol": "https",
+              "host": ["{{base_domain}}"],
+              "path": ["v1", "users"]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "username",
+                  "value": "{{test_user_email}}",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "{{test_user_email}}",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "{{test_user_password}}",
+                  "type": "text"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+} 

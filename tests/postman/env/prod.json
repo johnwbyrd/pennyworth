@@ -1,0 +1,30 @@
+{
+  "id": "prod",
+  "name": "Production",
+  "values": [
+    {
+      "key": "base_domain",
+      "value": "api.uproro.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "admin_api_key",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "test_user_email",
+      "value": "test@example.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "test_user_name",
+      "value": "Test User",
+      "type": "default",
+      "enabled": true
+    }
+  ]
+} 
