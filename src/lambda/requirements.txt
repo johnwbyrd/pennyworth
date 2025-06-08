@@ -2,3 +2,4 @@
 liteLLM==1.71.3
 python-jose 
 aws-lambda-powertools==3.14.0
+aws-xray-sdk
