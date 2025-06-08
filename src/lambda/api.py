@@ -105,7 +105,7 @@ def embeddings():
 
 # --- MCP endpoints ---
 
-@app.any(f"/{API_VER}/mcp/{{proxy+}}")
+@app.route(f"/{API_VER}/mcp/{{proxy+}}", method=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 def mcp():
     return wrap_handler(mcp_handler, app.current_event.path)
 
@@ -159,7 +159,7 @@ def get_apikey_status(user_id):
 
 # --- Catch-all for unsupported endpoints ---
 
-@app.any(f"/{API_VER}/{{proxy+}}")
+@app.route(f"/{API_VER}/{{proxy+}}", method=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 def not_implemented():
     return Response(status_code=404, content={"error": f"Endpoint '{app.current_event.path}' not implemented."})
 
