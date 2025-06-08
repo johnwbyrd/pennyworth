@@ -35,51 +35,45 @@ API_VER = PENNYWORTH_API_VERSION  # Local alias for brevity
 PENNYWORTH_BUILD_ID = os.environ.get("PENNYWORTH_BUILD_ID", "unknown")
 
 # --- Middleware definitions ---
-
-# Middleware for endpoints requiring a valid API key (Bearer token).
-# If authentication fails, raises ForbiddenException (403).
-@app.middleware
-def api_key_auth_middleware(handler, event, context):
+def api_key_auth_middleware(app, next_middleware):
     """
     Enforces API key authentication for protected endpoints.
     If the API key is missing or invalid, raises ForbiddenException (403).
     """
-    require_api_key_auth(event)
-    return handler(event, context)
+    require_api_key_auth(app.current_event.raw_event)
+    return next_middleware(app)
 
-# Middleware for endpoints requiring a valid Cognito JWT.
-# If authentication fails, raises ForbiddenException (403).
-@app.middleware
-def cognito_jwt_auth_middleware(handler, event, context):
+def cognito_jwt_auth_middleware(app, next_middleware):
     """
     Enforces Cognito JWT authentication for protected endpoints.
     If the JWT is missing, invalid, or expired, raises ForbiddenException (403).
     """
-    require_cognito_jwt(event)
-    return handler(event, context)
+    require_cognito_jwt(app.current_event.raw_event)
+    return next_middleware(app)
 
-# Middleware for public endpoints that require no authentication.
-# Allows all requests to proceed.
-@app.middleware
-def public_auth_middleware(handler, event, context):
-    """
-    Allows all requests (no authentication enforced).
-    Use for public endpoints that do not require authentication.
-    """
-    return handler(event, context)
-
-@app.middleware
-def user_session_middleware(handler, event, context):
+def user_session_middleware(app, next_middleware):
     """
     Validates Cognito JWT and attaches a user-context boto3 session to the event.
     If authentication or session acquisition fails, raises ForbiddenException (403).
     """
-    require_cognito_jwt(event)
-    session = get_user_boto3_session(event)
-    event["user_session"] = session
-    return handler(event, context)
+    require_cognito_jwt(app.current_event.raw_event)
+    session = get_user_boto3_session(app.current_event.raw_event)
+    app.current_event.raw_event["user_session"] = session
+    return next_middleware(app)
 
-# --- End Middleware definitions ---
+def public_auth_middleware(app, next_middleware):
+    """
+    Allows all requests (no authentication enforced).
+    Use for public endpoints that do not require authentication.
+    """
+    return next_middleware(app)
+
+# Register global middlewares (order matters if you want stacking)
+# Example: app.use([user_session_middleware, ...])
+# Add or remove as needed for your routes
+app.use([
+    # Add global middlewares here if needed
+])
 
 # --- Handler utility ---
 def wrap_handler(handler, *args, **kwargs):
@@ -93,79 +87,79 @@ def wrap_handler(handler, *args, **kwargs):
 
 # --- OpenAI-compatible endpoints ---
 
-@app.get(f"/{API_VER}/models", middlewares=[api_key_auth_middleware])
+@app.get(f"/{API_VER}/models")
 def list_models():
     return wrap_handler(list_models_handler)
 
-@app.post(f"/{API_VER}/chat/completions", middlewares=[api_key_auth_middleware])
+@app.post(f"/{API_VER}/chat/completions")
 def chat_completions():
     return wrap_handler(chat_completions_handler, app.current_event.json_body or {})
 
-@app.post(f"/{API_VER}/completions", middlewares=[api_key_auth_middleware])
+@app.post(f"/{API_VER}/completions")
 def completions():
     return wrap_handler(completions_handler, app.current_event.json_body or {})
 
-@app.post(f"/{API_VER}/embeddings", middlewares=[api_key_auth_middleware])
+@app.post(f"/{API_VER}/embeddings")
 def embeddings():
     return wrap_handler(embeddings_handler, app.current_event.json_body or {})
 
 # --- MCP endpoints ---
 
-@app.any(f"/{API_VER}/mcp/{{proxy+}}", middlewares=[api_key_auth_middleware])
+@app.any(f"/{API_VER}/mcp/{{proxy+}}")
 def mcp():
     return wrap_handler(mcp_handler, app.current_event.path)
 
 # --- Parameters endpoints ---
 
-@app.get(f"/{API_VER}/parameters/well-known", middlewares=[public_auth_middleware])
+@app.get(f"/{API_VER}/parameters/well-known")
 def well_known():
     return wrap_handler(well_known_handler)
 
-@app.get(f"/{API_VER}/parameters/protected", middlewares=[cognito_jwt_auth_middleware])
+@app.get(f"/{API_VER}/parameters/protected")
 def protected():
     return wrap_handler(protected_handler)
 
-@app.get(f"/{API_VER}/version", middlewares=[api_key_auth_middleware])
+@app.get(f"/{API_VER}/version")
 def version():
     return wrap_handler(version_handler)
 
 # --- Users endpoints ---
 
-@app.post(f"/{API_VER}/users", middlewares=[user_session_middleware])
+@app.post(f"/{API_VER}/users")
 def create_user():
     return wrap_handler(create_user_handler, app.current_event._event, app.current_event.json_body or {})
 
-@app.get(f"/{API_VER}/users/{{user_id}}", middlewares=[user_session_middleware])
+@app.get(f"/{API_VER}/users/{{user_id}}")
 def get_user(user_id):
     return wrap_handler(get_user_handler, app.current_event._event, user_id)
 
-@app.put(f"/{API_VER}/users/{{user_id}}", middlewares=[user_session_middleware])
+@app.put(f"/{API_VER}/users/{{user_id}}")
 def update_user(user_id):
     return wrap_handler(update_user_handler, app.current_event._event, user_id, app.current_event.json_body or {})
 
-@app.delete(f"/{API_VER}/users/{{user_id}}", middlewares=[user_session_middleware])
+@app.delete(f"/{API_VER}/users/{{user_id}}")
 def delete_user(user_id):
     return wrap_handler(delete_user_handler, app.current_event._event, user_id)
 
-@app.get(f"/{API_VER}/users", middlewares=[user_session_middleware])
+@app.get(f"/{API_VER}/users")
 def list_users():
     return wrap_handler(list_users_handler, app.current_event._event)
 
-@app.post(f"/{API_VER}/users/{{user_id}}/apikey", middlewares=[user_session_middleware])
+@app.post(f"/{API_VER}/users/{{user_id}}/apikey")
 def create_or_rotate_apikey(user_id):
     return wrap_handler(create_or_rotate_apikey_handler, app.current_event._event, user_id)
 
-@app.delete(f"/{API_VER}/users/{{user_id}}/apikey", middlewares=[user_session_middleware])
+@app.delete(f"/{API_VER}/users/{{user_id}}/apikey")
 def revoke_apikey(user_id):
     return wrap_handler(revoke_apikey_handler, app.current_event._event, user_id)
 
-@app.get(f"/{API_VER}/users/{{user_id}}/apikey", middlewares=[user_session_middleware])
+@app.get(f"/{API_VER}/users/{{user_id}}/apikey")
 def get_apikey_status(user_id):
     return wrap_handler(get_apikey_status_handler, app.current_event._event, user_id)
 
 # --- Catch-all for unsupported endpoints ---
 
-@app.any(f"/{API_VER}/{{proxy+}}", middlewares=[api_key_auth_middleware])
+@app.any(f"/{API_VER}/{{proxy+}}")
 def not_implemented():
     return Response(status_code=404, content={"error": f"Endpoint '{app.current_event.path}' not implemented."})
 
