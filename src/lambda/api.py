@@ -1,4 +1,5 @@
 import os
+import json
 
 from aws_lambda_powertools.event_handler import APIGatewayRestResolver, Response
 
@@ -74,6 +75,30 @@ app.use([
     # Add global middlewares here if needed
 ])
 
+# --- SafeResponse utility ---
+def SafeResponse(*, status_code, body=None, message=None, exception=None, **kwargs):
+    """
+    Ensures the response body is a JSON string for API Gateway, logs the response, and can handle normal payloads, messages, or exceptions.
+    This is needed because API Gateway requires a string body and Powertools serialization is unreliable across versions.
+    """
+    if exception is not None:
+        response_body = {"error": str(exception)}
+        logger.warning({"status": status_code, "error": str(exception)})
+    elif message is not None:
+        response_body = {"message": message}
+        logger.info({"status": status_code, "message": message})
+    elif body is not None:
+        response_body = body
+        logger.info({"status": status_code, "body": body})
+    else:
+        response_body = {}
+        logger.info({"status": status_code, "body": {}})
+
+    if not isinstance(response_body, str):
+        response_body = json.dumps(response_body)
+
+    return Response(status_code=status_code, body=response_body, **kwargs)
+
 # --- Handler utility ---
 def wrap_handler(handler, *args, **kwargs):
     """
@@ -83,7 +108,7 @@ def wrap_handler(handler, *args, **kwargs):
     """
     body, status = handler(*args, **kwargs)
     logger.info({"msg": "wrap_handler returning", "body": body, "status": status})
-    return Response(status_code=status, body=body)
+    return SafeResponse(status_code=status, body=body)
 
 # --- OpenAI-compatible endpoints ---
 
@@ -161,16 +186,13 @@ def get_apikey_status(user_id):
 
 @app.route(f"/{API_VER}/{{proxy+}}", method=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 def not_implemented():
-    return Response(status_code=404, body={"error": f"Endpoint '{app.current_event.path}' not implemented."})
+    return SafeResponse(status_code=404, message=f"Endpoint '{app.current_event.path}' not implemented.")
 
 # --- Exception handlers ---
 
 @app.exception_handler(APIException)
 def handle_api_exception(ex):
-    return Response(
-        status_code=ex.status_code,
-        body={"error": str(ex)}
-    )
+    return SafeResponse(status_code=ex.status_code, exception=ex)
 
 # --- Lambda entrypoint ---
 def lambda_handler(event, context):
