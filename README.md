@@ -24,6 +24,7 @@ For detailed documentation, see:
 - [Security Guide](doc/security.md)
 - [Cost Analysis](doc/cost.md)
 - [CLI Tool Design](doc/cli-tool.md)
+- [TODO (Short-Term Tasks)](doc/todo.md)
 
 ---
 
