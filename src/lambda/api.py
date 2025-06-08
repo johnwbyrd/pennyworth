@@ -83,6 +83,7 @@ def wrap_handler(handler, *args, **kwargs):
     This reduces boilerplate in endpoint functions.
     """
     body, status = handler(*args, **kwargs)
+    logger.info({"msg": "wrap_handler returning", "body": body, "status": status})
     return Response(status_code=status, body=body)
 
 # --- OpenAI-compatible endpoints ---
@@ -175,4 +176,10 @@ def handle_api_exception(ex):
 # --- Lambda entrypoint ---
 def lambda_handler(event, context):
     logger.info({"msg": "lambda_handler invoked", "event": event})
-    return app.resolve(event, context) 
+    try:
+        response = app.resolve(event, context)
+        logger.info({"msg": "lambda_handler returning", "response": str(response)})
+        return response
+    except Exception as e:
+        logger.exception({"msg": "Exception in lambda_handler", "error": str(e)})
+        raise 
