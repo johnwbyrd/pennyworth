@@ -17,6 +17,16 @@ from handlers.well_known import well_known_handler
 from handlers.protected import protected_handler
 from handlers.version import version_handler
 from version import API_SEMANTIC_VERSION
+from handlers.users import (
+    create_user_handler,
+    get_user_handler,
+    update_user_handler,
+    delete_user_handler,
+    list_users_handler,
+    create_or_rotate_apikey_handler,
+    revoke_apikey_handler,
+    get_apikey_status_handler,
+)
 
 app = APIGatewayHttpResolver()
 
@@ -107,6 +117,40 @@ def protected():
 @app.get(f"/{API_VER}/version", middlewares=[api_key_auth_middleware])
 def version():
     return wrap_handler(version_handler)
+
+# --- Users endpoints ---
+
+@app.post(f"/{API_VER}/users", middlewares=[cognito_jwt_auth_middleware])
+def create_user():
+    return wrap_handler(create_user_handler, app.current_event.json_body or {})
+
+@app.get(f"/{API_VER}/users/{{user_id}}", middlewares=[cognito_jwt_auth_middleware])
+def get_user(user_id):
+    return wrap_handler(get_user_handler, user_id)
+
+@app.put(f"/{API_VER}/users/{{user_id}}", middlewares=[cognito_jwt_auth_middleware])
+def update_user(user_id):
+    return wrap_handler(update_user_handler, user_id, app.current_event.json_body or {})
+
+@app.delete(f"/{API_VER}/users/{{user_id}}", middlewares=[cognito_jwt_auth_middleware])
+def delete_user(user_id):
+    return wrap_handler(delete_user_handler, user_id)
+
+@app.get(f"/{API_VER}/users", middlewares=[cognito_jwt_auth_middleware])
+def list_users():
+    return wrap_handler(list_users_handler)
+
+@app.post(f"/{API_VER}/users/{{user_id}}/apikey", middlewares=[cognito_jwt_auth_middleware])
+def create_or_rotate_apikey(user_id):
+    return wrap_handler(create_or_rotate_apikey_handler, user_id)
+
+@app.delete(f"/{API_VER}/users/{{user_id}}/apikey", middlewares=[cognito_jwt_auth_middleware])
+def revoke_apikey(user_id):
+    return wrap_handler(revoke_apikey_handler, user_id)
+
+@app.get(f"/{API_VER}/users/{{user_id}}/apikey", middlewares=[cognito_jwt_auth_middleware])
+def get_apikey_status(user_id):
+    return wrap_handler(get_apikey_status_handler, user_id)
 
 # --- Catch-all for unsupported endpoints ---
 

@@ -9,4 +9,5 @@ class APIException(Exception):
 
 class ForbiddenException(APIException): status_code = 403
 class BadRequestException(APIException): status_code = 400
-class NotFoundException(APIException): status_code = 404 
+class NotFoundException(APIException): status_code = 404
+class NotImplementedException(APIException): status_code = 501 

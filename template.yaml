@@ -120,29 +120,6 @@ Resources:
                 'cognito-identity.amazonaws.com:aud': !Ref PennyworthIdentityPool
               'ForAnyValue:StringLike':
                 'cognito-identity.amazonaws.com:amr': authenticated
-      Policies:
-        - PolicyName: PennyworthCliUserPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - dynamodb:GetItem
-                  - dynamodb:PutItem
-                  - dynamodb:UpdateItem
-                  - dynamodb:DeleteItem
-                  - dynamodb:Query
-                  - dynamodb:Scan
-                Resource: !GetAtt ApiKeysTable.Arn
-      Tags:
-        - Key: Project
-          Value: Pennyworth
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: StackName
-          Value: !Ref AWS::StackName
-        - Key: Component
-          Value: Authentication
 
   # Attaches the CLI user IAM role to authenticated users in the Identity Pool.
   IdentityPoolRoleAttachment:

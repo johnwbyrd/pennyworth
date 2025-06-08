@@ -27,7 +27,7 @@ Resources are tagged with a `Component` tag to identify their functional role:
 | Component Value | Description | Example Resources |
 |-----------------|-------------|-------------------|
 | `Authentication` | User authentication and authorization | Cognito User Pool, Identity Pool, IAM Roles |
-| `APIKeys` | API key management | DynamoDB Table |
+| `APIKeys` | API key management | Cognito |
 | `APIProxy` | API proxy functionality | Lambda Function |
 | `Logging` | Logging and monitoring | CloudWatch Log Groups |
 | `API` | API Gateway resources | Custom Domain, Base Path Mapping |

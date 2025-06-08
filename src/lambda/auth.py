@@ -41,7 +41,7 @@ def require_api_key_auth(event):
     api_key = extract_bearer_token(headers)
     if not api_key:
         raise ForbiddenException("Missing or invalid API key in Authorization header.")
-    # TODO: Implement real API key validation (DynamoDB lookup)
+    # TODO: Implement real API key validation (Cognito lookup)
     raise ForbiddenException("Unauthorized: API key validation not implemented.")
 
 # Cognito JWT validation helpers
