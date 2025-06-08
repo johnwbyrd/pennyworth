@@ -152,35 +152,35 @@ def version():
 
 @app.post(f"/{API_VER}/users")
 def create_user():
-    return wrap_handler(create_user_handler, app.current_event._event, app.current_event.json_body or {})
+    return wrap_handler(create_user_handler, app.current_event, app.current_event.json_body or {})
 
 @app.get(f"/{API_VER}/users/{{user_id}}")
 def get_user(user_id):
-    return wrap_handler(get_user_handler, app.current_event._event, user_id)
+    return wrap_handler(get_user_handler, app.current_event, user_id)
 
 @app.put(f"/{API_VER}/users/{{user_id}}")
 def update_user(user_id):
-    return wrap_handler(update_user_handler, app.current_event._event, user_id, app.current_event.json_body or {})
+    return wrap_handler(update_user_handler, app.current_event, user_id, app.current_event.json_body or {})
 
 @app.delete(f"/{API_VER}/users/{{user_id}}")
 def delete_user(user_id):
-    return wrap_handler(delete_user_handler, app.current_event._event, user_id)
+    return wrap_handler(delete_user_handler, app.current_event, user_id)
 
 @app.get(f"/{API_VER}/users")
 def list_users():
-    return wrap_handler(list_users_handler, app.current_event._event)
+    return wrap_handler(list_users_handler, app.current_event)
 
 @app.post(f"/{API_VER}/users/{{user_id}}/apikey")
 def create_or_rotate_apikey(user_id):
-    return wrap_handler(create_or_rotate_apikey_handler, app.current_event._event, user_id)
+    return wrap_handler(create_or_rotate_apikey_handler, app.current_event, user_id)
 
 @app.delete(f"/{API_VER}/users/{{user_id}}/apikey")
 def revoke_apikey(user_id):
-    return wrap_handler(revoke_apikey_handler, app.current_event._event, user_id)
+    return wrap_handler(revoke_apikey_handler, app.current_event, user_id)
 
 @app.get(f"/{API_VER}/users/{{user_id}}/apikey")
 def get_apikey_status(user_id):
-    return wrap_handler(get_apikey_status_handler, app.current_event._event, user_id)
+    return wrap_handler(get_apikey_status_handler, app.current_event, user_id)
 
 # --- Catch-all for unsupported endpoints ---
 
@@ -191,7 +191,7 @@ def not_implemented():
 # --- Exception handlers ---
 
 @app.exception_handler(APIException)
-def handle_api_exception(ex):
+def handle_api_exception(ex):o
     return SafeResponse(status_code=ex.status_code, exception=ex)
 
 # --- Lambda entrypoint ---

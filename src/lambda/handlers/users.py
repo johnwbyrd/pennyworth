@@ -5,12 +5,13 @@ from auth import get_user_boto3_session
 from errors import ForbiddenException, BadRequestException
 import os
 
-def create_user_handler(event, body):
+def create_user_handler(event):
     """
     Creates a new Cognito user using the permissions of the calling user (via Cognito Identity Pool).
-    Expects body to contain: username, email, password, and (optionally) group.
+    Expects event.json_body to contain: username, email, password, and (optionally) group.
     Returns the new user's username and status on success.
     """
+    body = event.json_body or {}
     required_fields = ["username", "email", "password"]
     for field in required_fields:
         if not body.get(field):
@@ -20,7 +21,7 @@ def create_user_handler(event, body):
     password = body["password"]
     group = body.get("group") or "user"
 
-    session = get_user_boto3_session(event)
+    session = get_user_boto3_session(event.raw_event)
     cognito = session.client("cognito-idp")
     user_pool_id = os.environ["USER_POOL_ID"]
 
@@ -59,7 +60,8 @@ def create_user_handler(event, body):
 def get_user_handler(event, user_id):
     raise NotImplementedException(f"Not implemented: get_user {user_id}")
 
-def update_user_handler(event, user_id, body):
+def update_user_handler(event, user_id):
+    body = event.json_body or {}
     raise NotImplementedException(f"Not implemented: update_user {user_id}")
 
 def delete_user_handler(event, user_id):
