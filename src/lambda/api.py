@@ -83,7 +83,7 @@ def wrap_handler(handler, *args, **kwargs):
     This reduces boilerplate in endpoint functions.
     """
     body, status = handler(*args, **kwargs)
-    return Response(status_code=status, content=body)
+    return Response(status_code=status, body=body)
 
 # --- OpenAI-compatible endpoints ---
 
@@ -161,7 +161,7 @@ def get_apikey_status(user_id):
 
 @app.route(f"/{API_VER}/{{proxy+}}", method=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
 def not_implemented():
-    return Response(status_code=404, content={"error": f"Endpoint '{app.current_event.path}' not implemented."})
+    return Response(status_code=404, body={"error": f"Endpoint '{app.current_event.path}' not implemented."})
 
 # --- Exception handlers ---
 
