@@ -80,34 +80,6 @@ def cognito_login(username: str, password: str) -> str:
         raise RuntimeError(f"Login failed: {e}")
 
 
-def get_aws_credentials_from_cognito(id_token: str) -> dict:
-    """
-    Exchange a Cognito ID token for temporary AWS credentials via the Identity Pool.
-    Returns a dict with AccessKeyId, SecretKey, SessionToken.
-    """
-    client = boto3.client("cognito-identity", region_name=AWS_REGION)
-    try:
-        # Get the identity id
-        identity_resp = client.get_id(
-            IdentityPoolId=COGNITO_IDENTITY_POOL_ID,
-            Logins={
-                f"cognito-idp.{AWS_REGION}.amazonaws.com/{COGNITO_USER_POOL_ID}": id_token
-            },
-        )
-        identity_id = identity_resp["IdentityId"]
-        # Get credentials
-        creds_resp = client.get_credentials_for_identity(
-            IdentityId=identity_id,
-            Logins={
-                f"cognito-idp.{AWS_REGION}.amazonaws.com/{COGNITO_USER_POOL_ID}": id_token
-            },
-        )
-        return creds_resp["Credentials"]
-    except botocore.exceptions.ClientError as e:
-        print(f"[auth] Failed to get AWS credentials: {e}")
-        raise
-
-
 def login_flow(config: dict) -> dict:
     """
     Full login flow: prompts for username/password, handles MFA, returns AWS credentials dict.
@@ -117,9 +89,8 @@ def login_flow(config: dict) -> dict:
     import getpass
     password = getpass.getpass("Cognito password: ")
     id_token = cognito_login(username, password)
-    creds = get_aws_credentials_from_cognito(id_token)
     print("[auth] Login successful. Temporary AWS credentials obtained.")
-    return creds
+    return {"IdToken": id_token}
 
 # Example usage (to be called from CLI):
 # id_token = cognito_login(username, password)

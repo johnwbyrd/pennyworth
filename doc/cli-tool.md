@@ -1,6 +1,6 @@
 # Pennyworth API Key Management CLI
 
-A Python command-line tool for secure management of API keys in the Pennyworth system, using DynamoDB as the backend. This tool never stores or displays plaintext API keys—only their hashes.
+A Python command-line tool for secure management of API keys in the Pennyworth system, using REST API endpoints as the backend. This tool never stores or displays plaintext API keys—only their hashes, and only shows the key once at creation.
 
 ## Features
 - Create new API keys (secure, random, shown only once)
@@ -12,14 +12,14 @@ A Python command-line tool for secure management of API keys in the Pennyworth s
 
 ## Security Principles
 - **No plaintext API keys are ever stored or displayed after creation.**
-- **Only secure hashes (e.g., SHA-256) are stored in DynamoDB.**
-- **All AWS access is via standard credentials (profile, env vars, or IAM role).**
+- **API keys are managed via REST API endpoints and stored as Cognito custom attributes.**
+- **All REST API access is authenticated using Cognito JWTs.**
 - **All output (except errors) is to stdout for easy redirection.**
 
 ## Requirements
 - Python 3.8+
-- boto3 (AWS SDK for Python)
-- DynamoDB table (schema as described in `security.md`)
+- requests (HTTP client)
+- Typer (CLI framework)
 
 ## Command Structure
 
@@ -39,7 +39,7 @@ Create a new API key for a user/owner.
   - `--output <format>`: `json` or `text` (default: `text`)
 - **Behavior:**
   - Generates a secure random API key (256 bits, base64 or hex)
-  - Stores only the hash in DynamoDB
+  - Sends a request to the REST API to create the key
   - Displays the plaintext key **once** to the user
 - **Example:**
   ```bash
@@ -62,7 +62,7 @@ Revoke an existing API key by hash or owner.
   - `--owner <string>`: Owner (optional, will revoke all keys for owner)
   - `--output <format>`: `json` or `text` (default: `text`)
 - **Behavior:**
-  - Sets status to `revoked` in DynamoDB
+  - Sends a request to the REST API to revoke the key(s)
 - **Example:**
   ```bash
   pennyworth-cli revoke --hash abcd1234... --output json
@@ -76,6 +76,7 @@ List all API keys and their metadata.
   - `--status <string>`: Filter by status (active, revoked, expired; optional)
 - **Behavior:**
   - Lists all keys (by hash), with metadata: owner, status, created_at, last_used, usage, permissions, expiry
+  - Data is fetched from the REST API
 - **Example:**
   ```bash
   pennyworth-cli audit --output text
@@ -95,6 +96,7 @@ Show the status of a specific API key or a summary of all keys.
 - **Behavior:**
   - If hash or owner is given, shows metadata for that key/owner
   - If neither is given, shows summary counts (total, active, revoked, expired)
+  - Data is fetched from the REST API
 - **Example:**
   ```bash
   pennyworth-cli status --hash abcd1234... --output json
@@ -119,7 +121,7 @@ Rotate (replace) an API key for a user/owner.
   - `--hash <string>`: API key hash to rotate (required)
   - `--output <format>`: `json` or `text` (default: `text`)
 - **Behavior:**
-  - Revokes the old key, creates a new one for the same owner/permissions
+  - Sends a request to the REST API to rotate the key
   - Displays the new key once
 - **Example:**
   ```bash
@@ -132,14 +134,9 @@ Rotate (replace) an API key for a user/owner.
 - All output is to stdout (can be redirected to a file)
 - Errors and warnings go to stderr
 
-## AWS Authentication
-- Uses standard AWS credential resolution (profile, env vars, IAM role)
-- Supports specifying region and table name via environment variables or CLI flags
-
-## DynamoDB Table Schema
-- Table name: configurable (default: `api-keys`)
-- Primary key: `api_key_hash` (string)
-- Attributes: `created_at`, `status`, `owner`, `permissions`, `last_used`, `usage_count`, `expiry`, `rate_limit`
+## Authentication
+- Uses Cognito for authentication
+- CLI obtains a JWT and uses it as a Bearer token for all REST API requests
 
 ## Usage Examples
 ```bash
@@ -161,8 +158,8 @@ pennyworth-cli rotate --hash abcd1234... --output text
 
 ## Security Notes
 - Never share or store the plaintext API key after creation.
-- Only hashes are stored in DynamoDB.
-- Use IAM permissions to restrict CLI access to authorized admins.
+- API keys are managed as Cognito custom attributes and only shown to the user once.
+- Use IAM permissions to restrict REST API access to authorized admins.
 - All actions should be logged (optionally, to CloudWatch or a file) for audit purposes.
 
 ## Installation & Distribution
@@ -189,7 +186,7 @@ To develop or run the Pennyworth CLI tool locally, follow these steps:
    ```bash
    pip install -r requirements-dev.txt
    ```
-   This will install Typer and any other dev/test tools needed for the CLI and project development.
+   This will install Typer, requests, and any other dev/test tools needed for the CLI and project development.
 
 3. **Run the CLI tool:**
    ```bash

@@ -52,7 +52,7 @@ Pennyworth is a serverless, OpenAI-compatible API proxy for AWS Bedrock (and oth
 - **CloudFormation/SAM Resources:**
   - Cognito User Pool, User Pool Groups, Identity Pool, IAM Roles, Role Attachments, and Role Mappings (see detailed YAML in previous message).
 
-### 1. Endpoints for CRUD Operations on Cognito Users
+### 1. Endpoints for CRUD Operations on Cognito Users and API Keys
 - **/users (POST):** Create user (admin only, can specify group/role; default is user).
 - **/users/{id} (GET):** Get user info (admin for any user, user for self).
 - **/users/{id} (PUT/PATCH):** Update user (admin for any user, user for self).
@@ -75,8 +75,7 @@ Pennyworth is a serverless, OpenAI-compatible API proxy for AWS Bedrock (and oth
 ### 3. API Key Authentication and Permission Checks
 - On API key-authenticated requests:
   - Lookup user by API key (custom attribute) using Cognito `ListUsers`.
-  - Use Cognito Identity Pool to get temporary AWS credentials for that user.
-  - Attempt AWS operations as that user; IAM enforces permissions.
+  - Use Cognito user status and group for all permission checks.
   - If the user is not found, disabled, or lacks permission, the operation fails.
 - On Cognito JWT-authenticated requests:
   - Use group membership in the JWT to authorize actions.
@@ -85,7 +84,6 @@ Pennyworth is a serverless, OpenAI-compatible API proxy for AWS Bedrock (and oth
 - Remove DynamoDB for API key lookup.
 - Use Cognito `ListUsers` with filter on `custom:api_key`.
 - Use Cognito user status and group for all permission checks.
-- Use Cognito Identity Pool to get temporary AWS credentials for the user.
 
 ### 5. Endpoint Auth Model
 
@@ -115,7 +113,7 @@ Pennyworth is a serverless, OpenAI-compatible API proxy for AWS Bedrock (and oth
 - Ensure logs never contain full API keys or sensitive data.
 
 ### 8. **Cost Tracking & Reporting**
-- Store usage and cost data in DynamoDB, keyed by API key or user. (DynamoDB is not used for authentication or API key management.)
+- Store usage and cost data in a suitable store, keyed by API key or user. (No longer using DynamoDB for authentication or API key management.)
 - Publish cost metrics to CloudWatch for alerting and reporting.
 - Plan for future dashboards or automated cost reports.
 

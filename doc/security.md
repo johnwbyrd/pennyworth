@@ -1,50 +1,45 @@
 # Security Guide
 
-## API Key Management (DynamoDB)
+## API Key Management (Cognito)
 
 ### Overview
-API keys are used to authenticate and authorize access to the OpenAI-compatible API proxy. **Only a secure hash (e.g., SHA-256) of each API key is stored in DynamoDB—never the key itself.** This ensures that even if the database is compromised, the actual keys remain secret. **API key management is exclusively via DynamoDB; LiteLLM's built-in key management is not used.** **A Python CLI tool is used for API key creation, auditing, and revocation, and only hashes are ever stored.**
+API keys are used to authenticate and authorize access to the OpenAI-compatible API proxy. **API keys are stored as custom attributes (e.g., `custom:api_key`) on Cognito users—never the key itself after creation.** This ensures that even if the user directory is compromised, the actual keys remain secret. **API key management is exclusively via REST API endpoints; the CLI is a REST client.**
 
-### DynamoDB Table Design
-- **Table Name:** `api-keys` (or configurable)
-- **Primary Key:** `api_key_hash` (string, securely generated hash)
+### Cognito Attribute Design
+- **Attribute Name:** `custom:api_key` (or similar)
+- **Stored On:** Cognito user object
 - **Attributes:**
-  - `created_at` (timestamp)
+  - `custom:api_key` (securely generated, only shown once)
   - `status` (active, revoked, expired)
-  - `owner` (user/team/tenant identifier)
-  - `permissions` (encrypted or plaintext map/list)
-  - `last_used` (timestamp, optional)
-  - `usage_count` (optional)
-  - `rate_limit` (optional)
+  - `permissions` (optional, as Cognito attribute)
+  - `expiry` (optional)
 
-### Key Hashing and Authentication
+### Key Generation and Authentication
 - When creating a key:
   - Generate a strong random API key (256 bits, base64 or hex encoded)
-  - Compute a secure hash (e.g., SHA-256) of the API key
-  - Store only the hash in DynamoDB, never the plaintext key
+  - Store as a Cognito custom attribute on the user
   - Distribute the API key to the user securely (show once)
 - When authenticating:
-  - Hash the presented API key using the same hash function
-  - Look up the hash in DynamoDB
+  - Lookup user by API key (using Cognito `ListUsers` with filter on `custom:api_key`)
   - If found and active, allow access; otherwise, deny
 
 ### Key Lifecycle
 - **Creation:**
   - Generate a secure random key
-  - Store its hash in DynamoDB with status `active`
+  - Store as Cognito custom attribute with status `active`
   - Distribute the key to the user securely
 - **Rotation:**
   - Create a new key, update user/client, then revoke the old key
   - Support overlapping keys during transition
 - **Revocation:**
-  - Set `status` to `revoked` in DynamoDB
+  - Remove the attribute or set status to `revoked` in Cognito
   - Key is immediately invalid for new requests
 - **Expiration:**
-  - Optionally set TTL or expiration date for keys
+  - Optionally set expiry date as a Cognito attribute
 
 ### Best Practices
 - Use strong, random keys (never guessable)
-- **Never store or log full API keys**—only store their hashes
+- **Never store or log full API keys**—only store as Cognito attribute, and only show to user once
 - Rotate keys regularly (e.g., every 90 days)
 - Revoke keys immediately if compromised
 - Monitor usage for anomalies (spikes, abuse)
@@ -54,16 +49,13 @@ API keys are used to authenticate and authorize access to the OpenAI-compatible 
 
 - **Lambda Execution Role:**
   - Grant only the permissions needed:
-    - `dynamodb:GetItem` (for key validation)
-    - `dynamodb:UpdateItem` (for usage tracking, optional)
+    - `cognito-idp:ListUsers` (for key validation)
+    - `cognito-idp:AdminUpdateUserAttributes` (for key rotation/revocation)
     - `bedrock:InvokeModel` or other LLM provider permissions
     - `logs:CreateLogGroup`, `logs:CreateLogStream`, `logs:PutLogEvents` (for CloudWatch)
 - **API Gateway:**
   - Restrict invocation to your Lambda only
   - Enable throttling and quotas
-- **DynamoDB Table:**
-  - Restrict access to Lambda's execution role
-  - Enable point-in-time recovery (optional)
 
 ## General Security Recommendations
 - Use environment variables for all secrets and credentials
@@ -82,4 +74,4 @@ API keys are used to authenticate and authorize access to the OpenAI-compatible 
 
 ---
 
-This security model provides strong, flexible, and auditable API key management, while leveraging AWS's security best practices for serverless deployments. API keys are never stored in plaintext, ensuring robust protection even if the database is compromised. 
+This security model provides strong, flexible, and auditable API key management, while leveraging AWS's security best practices for serverless deployments. API keys are never stored in plaintext after creation, ensuring robust protection even if the user directory is compromised. 

@@ -152,40 +152,6 @@ Resources:
       Roles:
         authenticated: !GetAtt PennyworthCliUserRole.Arn
 
-  # DynamoDB table for storing and managing API keys and their metadata.
-  ApiKeysTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: api_key_hash
-          AttributeType: S
-        - AttributeName: owner
-          AttributeType: S
-      KeySchema:
-        - AttributeName: api_key_hash
-          KeyType: HASH
-      GlobalSecondaryIndexes:
-        - IndexName: OwnerIndex
-          KeySchema:
-            - AttributeName: owner
-              KeyType: HASH
-          Projection:
-            ProjectionType: ALL
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      SSESpecification:
-        SSEEnabled: true
-      Tags:
-        - Key: Project
-          Value: Pennyworth
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: StackName
-          Value: !Ref AWS::StackName
-        - Key: Component
-          Value: APIKeys
-
   # Lambda function that handles all API requests (single entry point).
   PennyworthApiHandler:
     Type: AWS::Serverless::Function
@@ -198,7 +164,6 @@ Resources:
       Timeout: 30
       Environment:
         Variables:
-          API_KEYS_TABLE: !Ref ApiKeysTable
           USER_POOL_ID: !Ref PennyworthUserPool
           USER_POOL_CLIENT_ID: !Ref PennyworthUserPoolClient
           IDENTITY_POOL_ID: !Ref PennyworthIdentityPool
@@ -206,8 +171,6 @@ Resources:
           PENNYWORTH_API_SEMANTIC_VERSION: !Ref PennyworthApiSemanticVersion
           PENNYWORTH_BUILD_ID: !Ref PennyworthBuildId
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ApiKeysTable
         - Statement:
             - Effect: Allow
               Action:
@@ -302,14 +265,6 @@ Outputs:
     Value: !Ref PennyworthIdentityPool
     Export:
       Name: !Sub ${AWS::StackName}-IdentityPoolId
-
-  # DynamoDB table name for API keys
-  # Used for API key storage and management
-  ApiKeysTableName:
-    Description: DynamoDB table name for API keys. Used for API key storage and management.
-    Value: !Ref ApiKeysTable
-    Export:
-      Name: !Sub ${AWS::StackName}-ApiKeysTableName
 
   # API Gateway endpoint URL
   # The default API Gateway URL for the v1 API

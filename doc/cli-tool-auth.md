@@ -1,16 +1,17 @@
-# Pennyworth CLI Authentication & Permissions: Cognito + IAM
+# Pennyworth CLI Authentication & Permissions: Cognito + REST API
 
-This document describes, in detail, how authentication and permissions for the Pennyworth CLI tool are managed using Amazon Cognito and AWS IAM, what is automated via AWS SAM, what must be done manually, and how this can be deployed from a GitHub Action.
+This document describes, in detail, how authentication and permissions for the Pennyworth CLI tool are managed using Amazon Cognito and REST API endpoints, what is automated via AWS SAM, what must be done manually, and how this can be deployed from a GitHub Action.
 
 ---
 
 ## 1. Overview
-- **Goal:** Only authorized users can use the CLI tool to manage API keys, with all actions performed using temporary, auditable AWS credentials.
+- **Goal:** Only authorized users can use the CLI tool to manage API keys, with all actions performed via authenticated REST API calls.
 - **Solution:**
   - Use **Cognito User Pool** for user authentication (username/password, optional MFA).
-  - Use **Cognito Identity Pool** to issue temporary AWS credentials to authenticated users.
-  - Use an **IAM Role** (e.g., `PennyworthAdminRole`) with permissions for DynamoDB, assumed by authenticated Cognito users.
-  - Use **AWS SAM** to automate all infrastructure except user onboarding.
+  - CLI exchanges credentials for a Cognito ID token (JWT).
+  - CLI uses the JWT as a Bearer token for all REST API requests.
+  - All API key management (create, rotate, revoke, audit, status) is performed via REST API endpoints.
+  - No direct AWS SDK or DynamoDB access from the CLI.
 
 ---
 
@@ -22,7 +23,6 @@ This document describes, in detail, how authentication and permissions for the P
 - **Cognito Identity Pool** (linked to User Pool)
 - **IAM Role** for CLI admins, with trust policy for Cognito
 - **Role mapping** in Identity Pool (authenticated users → admin role)
-- **DynamoDB Table** for API keys
 - **Outputs** for all ARNs, IDs, and endpoints needed by the CLI
 
 ### What Must Be Done Manually
@@ -36,57 +36,24 @@ This document describes, in detail, how authentication and permissions for the P
 
 1. **User is created/invited** in the Cognito User Pool (manual, one-time).
 2. **User authenticates** via the CLI (username/password, optional MFA).
-3. **CLI exchanges credentials** for a Cognito ID token.
-4. **CLI uses the ID token** to get temporary AWS credentials from the Cognito Identity Pool.
-5. **CLI uses these credentials** to perform DynamoDB actions as the `PennyworthAdminRole`.
-6. **IAM enforces permissions**; all actions are logged and auditable.
+3. **CLI exchanges credentials for a Cognito ID token (JWT).**
+4. **CLI uses the JWT as a Bearer token for all REST API requests.**
+5. **REST API enforces permissions and performs all key management actions.**
+6. **All actions are logged and auditable.**
 
 ---
 
-## 4. Example SAM Template (High-Level)
+## 4. Example REST API Flow (High-Level)
 
-```yaml
-Resources:
-  PennyworthUserPool:
-    Type: AWS::Cognito::UserPool
-    Properties: { ... }
-
-  PennyworthUserPoolClient:
-    Type: AWS::Cognito::UserPoolClient
-    Properties: { ... }
-
-  PennyworthIdentityPool:
-    Type: AWS::Cognito::IdentityPool
-    Properties:
-      CognitoIdentityProviders:
-        - ClientId: !Ref PennyworthUserPoolClient
-          ProviderName: !GetAtt PennyworthUserPool.ProviderName
-      ...
-
-  PennyworthAdminRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument: # Trust policy for Cognito
-      Policies: [ ... DynamoDB permissions ... ]
-
-  IdentityPoolRoleAttachment:
-    Type: AWS::Cognito::IdentityPoolRoleAttachment
-    Properties:
-      IdentityPoolId: !Ref PennyworthIdentityPool
-      Roles:
-        authenticated: !GetAtt PennyworthAdminRole.Arn
-
-  ApiKeysTable:
-    Type: AWS::DynamoDB::Table
-    Properties: { ... }
-```
+- CLI authenticates with Cognito and obtains a JWT.
+- CLI sends HTTP requests to REST API endpoints (e.g., `/users`, `/users/{id}/apikey`).
+- REST API validates the JWT and enforces permissions based on Cognito groups/roles.
+- All key management is performed by the backend, not the CLI.
 
 ### Outputs
 - User Pool ID
 - User Pool Client ID
-- Identity Pool ID
-- Admin Role ARN
-- DynamoDB Table Name
+- REST API base URL
 
 ---
 
@@ -95,25 +62,24 @@ Resources:
 1. **User is invited to Cognito User Pool** (admin task, one-time).
 2. **User runs the CLI tool.**
 3. **CLI prompts for username/password** (and MFA if enabled).
-4. **CLI exchanges credentials for a Cognito ID token.**
-5. **CLI uses the ID token to get temporary AWS credentials** from the Identity Pool.
-6. **CLI uses these credentials to perform all actions.**
-7. **All permissions are enforced by IAM.**
+4. **CLI exchanges credentials for a Cognito ID token (JWT).**
+5. **CLI uses the JWT as a Bearer token for all REST API requests.**
+6. **All permissions are enforced by the REST API.**
 
 ---
 
 ## 6. Deploying from a GitHub Action
 
 ### What Works Well
-- **All infrastructure (User Pool, Identity Pool, IAM Role, DynamoDB Table) can be deployed/updated from a GitHub Action** using AWS SAM and the AWS CLI.
+- **All infrastructure (User Pool, Identity Pool, IAM Role) can be deployed/updated from a GitHub Action** using AWS SAM and the AWS CLI.
 - **Outputs** (IDs, ARNs) can be captured and published as GitHub Action outputs or artifacts for later use.
 
 ### Caveats & Best Practices
 - **User onboarding (creation/invitation) is still a manual step.**
-- **GitHub Action must have permissions to create/update Cognito, IAM, and DynamoDB resources.**
+- **GitHub Action must have permissions to create/update Cognito and IAM resources.**
 - **Sensitive outputs (e.g., User Pool Client Secret) should be handled as GitHub secrets.**
 - **If you use GitHub OIDC for deployment, ensure the deploy role has all necessary permissions.**
-- **CLI configuration (User Pool ID, Client ID, Identity Pool ID, Region) should be published as outputs or stored in a secure location for CLI users.**
+- **CLI configuration (User Pool ID, Client ID, REST API URL, Region) should be published as outputs or stored in a secure location for CLI users.**
 
 ### Example GitHub Action Step
 ```yaml
@@ -133,9 +99,9 @@ Resources:
 ---
 
 ## 7. Security & Audit
-- **All CLI actions are performed with temporary AWS credentials, mapped to the admin IAM role.**
-- **All actions are logged in AWS CloudTrail and DynamoDB streams (if enabled).**
-- **No static AWS keys are used.**
+- **All CLI actions are performed via authenticated REST API calls.**
+- **All actions are logged in API Gateway, Lambda, and CloudTrail (if enabled).**
+- **No static AWS keys or direct AWS SDK access is used by the CLI.**
 - **User management is separate from infrastructure and can be handled securely via the AWS Console.**
 
 ---
@@ -148,7 +114,7 @@ Resources:
 | Cognito Identity Pool       | Yes               |                 |
 | IAM Role (Admin)            | Yes               |                 |
 | Role Mapping                | Yes               |                 |
-| DynamoDB Table              | Yes               |                 |
+| REST API Endpoints          | Yes               |                 |
 | User creation/invitation    |                   | Yes             |
 | Group membership            |                   | (Optional)      |
 | MFA setup                   |                   | User at login   |
@@ -162,7 +128,6 @@ Resources:
 - [AWS::Cognito::UserPool](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-userpool.html)
 - [AWS::Cognito::IdentityPool](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-cognito-identitypool.html)
 - [AWS::IAM::Role](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-iam-role.html)
-- [AWS::DynamoDB::Table](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-dynamodb-table.html)
 
 ---
 

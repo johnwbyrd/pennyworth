@@ -2,5 +2,4 @@
 # Example: pytest, black, mypy, etc. 
 
 typer[all]>=0.9.0 
-boto3 
 requests 
