@@ -34,7 +34,7 @@ app = APIGatewayRestResolver()
 
 PENNYWORTH_API_VERSION = os.environ.get("PENNYWORTH_API_VERSION", "v1")
 API_VER = PENNYWORTH_API_VERSION  # Local alias for brevity
-PENNYWORTH_BUILD_ID = os.environ.get("PENNYWORTH_BUILD_ID", "unknown")
+GIT_COMMIT = os.environ.get("GIT_COMMIT", "unknown")
 
 # --- Middleware definitions ---
 def api_key_auth_middleware(app, next_middleware):

@@ -46,6 +46,7 @@ jobs:
               BaseDomain=$BASE_DOMAIN \
               AcmCertificateArn=$ACM_CERTIFICATE_ARN \
               Route53HostedZoneId=$ROUTE53_HOSTED_ZONE_ID \
+              GitCommit=${{ github.sha }} \
           | sed -E 's/^(Value[[:space:]]*:[[:space:]]*).*/\1***/'
       - name: Set Lambda log retention to 14 days
         run: |

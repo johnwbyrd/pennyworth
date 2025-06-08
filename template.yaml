@@ -19,11 +19,11 @@ Parameters:
     Type: String
     Default: 0.1.0
     Description: The semantic version for the API (e.g., 0.1.0).
-  # Build identifier (e.g., GitHub SHA)
-  PennyworthBuildId:
+  # Git commit SHA for this deployment
+  GitCommit:
     Type: String
     Default: unknown
-    Description: The build identifier (commit SHA, run number, etc.) for this deployment.
+    Description: The Git commit SHA for this deployment.
 
   # ACM certificate ARN for HTTPS
   # Must be in the same region as API Gateway
@@ -147,7 +147,7 @@ Resources:
           IDENTITY_POOL_ID: !Ref PennyworthIdentityPool
           PENNYWORTH_API_VERSION: !Ref PennyworthApiVersion
           PENNYWORTH_API_SEMANTIC_VERSION: !Ref PennyworthApiSemanticVersion
-          PENNYWORTH_BUILD_ID: !Ref PennyworthBuildId
+          GIT_COMMIT: !Ref GitCommit
       Policies:
         - Statement:
             - Effect: Allow
