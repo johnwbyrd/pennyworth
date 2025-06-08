@@ -1,6 +1,6 @@
 import os
 
-from aws_lambda_powertools.event_handler import APIGatewayHttpResolver, Response
+from aws_lambda_powertools.event_handler import APIGatewayRestResolver, Response
 from aws_lambda_powertools.event_handler.api_gateway import Response as PowertoolsResponse
 
 from utils import logger
@@ -28,7 +28,7 @@ from handlers.users import (
     get_apikey_status_handler,
 )
 
-app = APIGatewayHttpResolver()
+app = APIGatewayRestResolver()
 
 PENNYWORTH_API_VERSION = os.environ.get("PENNYWORTH_API_VERSION", "v1")
 API_VER = PENNYWORTH_API_VERSION  # Local alias for brevity
