@@ -5,51 +5,96 @@ from typing import Optional, Dict, Any
 import boto3
 from botocore.exceptions import ClientError
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import time
 
 # Session storage configuration
 SESSION_DIR = os.environ.get("PENNYWORTH_SESSION_DIR", os.path.join(os.path.expanduser("~"), ".pennyworth"))
 SESSION_FILE = os.environ.get("PENNYWORTH_SESSION_FILE", "session.json")
 
-def get_session(username: Optional[str] = None, password: Optional[str] = None) -> Optional[Dict[str, Any]]:
+# API configuration
+API_URL = os.environ.get("PENNYWORTH_API_URL", "https://api.uproro.com")
+API_TIMEOUT = int(os.environ.get("PENNYWORTH_API_TIMEOUT", "15"))  # seconds
+
+START_TIME = time.time()
+
+def log_debug(msg, verbose=False):
+    if verbose:
+        elapsed = time.time() - START_TIME
+        print(f"[DEBUG +{elapsed:.2f}s] {msg}")
+
+def get_session(params: Optional[dict] = None) -> Optional[Dict[str, Any]]:
     """
     Get a valid session by either:
     1. Using existing valid session from ~/.pennyworth/session.json
     2. Using provided credentials to create new session
     3. Prompting for credentials if needed
-    
+    Args:
+        params: Optional dict with keys 'username', 'password', 'new_password', 'verbose'
     Returns:
-        Dict containing session data (jwt_token, aws_credentials, session_expires) or None if no valid session
+        Dict containing session data (jwt_token, aws_credentials) or None if no valid session
     """
+    verbose = params.get('verbose', False) if params else False
+    username = params.get('username') if params else None
+    password = params.get('password') if params else None
+    new_password = params.get('new_password') if params else None
     # First check existing session
+    t0 = time.time()
+    log_debug("Loading existing session...", verbose)
     session = _load_session()
+    t1 = time.time()
+    if session:
+        if not _is_session_expired(session):
+            log_debug(f"Loaded session in {t1-t0:.2f}s (session found, valid)", verbose)
+        else:
+            log_debug(f"Loaded session in {t1-t0:.2f}s (session found, expired)", verbose)
+    else:
+        log_debug(f"Loaded session in {t1-t0:.2f}s (no session found)", verbose)
     if session and not _is_session_expired(session):
+        log_debug("Session is valid.", verbose)
         return session
-        
+    
     # Need to authenticate
     if not username:
         username = input("Cognito username: ")
     if not password:
         password = getpass.getpass("Cognito password: ")
-        
+    
     try:
         # Get Cognito config
+        t2 = time.time()
+        log_debug("Fetching Cognito config...", verbose)
         config = _get_cognito_config()
+        t3 = time.time()
+        log_debug(f"Fetched Cognito config in {t3-t2:.2f}s", verbose)
         
         # Authenticate with Cognito
-        id_token = _authenticate_with_cognito(config, username, password)
+        t4 = time.time()
+        log_debug("Authenticating with Cognito...", verbose)
+        id_token = _authenticate_with_cognito(config, username, password, new_password)
+        t5 = time.time()
+        log_debug(f"Authenticated with Cognito in {t5-t4:.2f}s", verbose)
         
         # Get AWS credentials
+        t6 = time.time()
+        log_debug("Getting AWS credentials...", verbose)
         aws_creds = _get_aws_credentials(config, id_token)
+        t7 = time.time()
+        log_debug(f"Got AWS credentials in {t7-t6:.2f}s", verbose)
         
         # Create session
         session = {
             "jwt_token": id_token,
-            "aws_credentials": aws_creds,
-            "session_expires": aws_creds["Expiration"]
+            "aws_credentials": aws_creds
         }
         
         # Save session
+        t8 = time.time()
+        log_debug("Saving session...", verbose)
         _save_session(session)
+        t9 = time.time()
+        log_debug(f"Saved session in {t9-t8:.2f}s", verbose)
         
         return session
         
@@ -71,11 +116,17 @@ def _load_session() -> Optional[Dict[str, Any]]:
 def _save_session(session: Dict[str, Any]) -> None:
     """Save session to ~/.pennyworth/session.json"""
     session_file = os.path.join(SESSION_DIR, SESSION_FILE)
-    
     try:
         os.makedirs(SESSION_DIR, exist_ok=True)
+        # Ensure aws_credentials["Expiration"] is a string
+        session_copy = session.copy()
+        if "aws_credentials" in session_copy and "Expiration" in session_copy["aws_credentials"]:
+            exp = session_copy["aws_credentials"]["Expiration"]
+            if hasattr(exp, 'isoformat'):
+                session_copy["aws_credentials"] = session_copy["aws_credentials"].copy()
+                session_copy["aws_credentials"]["Expiration"] = exp.isoformat()
         with open(session_file, "w") as f:
-            json.dump(session, f, indent=2)
+            json.dump(session_copy, f, indent=2, default=str)
     except Exception as e:
         print(f"Error saving session: {e}")
 
@@ -83,24 +134,25 @@ def _is_session_expired(session: Dict[str, Any]) -> bool:
     """Check if session is expired"""
     from datetime import datetime
     try:
-        expires = datetime.fromisoformat(session["session_expires"].replace("Z", "+00:00"))
+        expires = datetime.fromisoformat(session["aws_credentials"]["Expiration"].replace("Z", "+00:00"))
         return datetime.now(expires.tzinfo) >= expires
     except Exception:
         return True
 
 def _get_cognito_config() -> Dict[str, str]:
     """Get Cognito configuration from well-known endpoint"""
-    api_url = os.environ.get("PENNYWORTH_API_URL", "https://api.uproro.com")
-    well_known_url = f"{api_url}/v1/parameters/well-known"
+    well_known_url = f"{API_URL}/v1/parameters/well-known"
     
     try:
-        resp = requests.get(well_known_url, timeout=5)
+        resp = requests.get(well_known_url, timeout=API_TIMEOUT)
         resp.raise_for_status()
         return resp.json()
-    except Exception as e:
-        raise RuntimeError(f"Failed to fetch Cognito config: {e}")
+    except requests.exceptions.Timeout:
+        raise RuntimeError(f"Timeout after {API_TIMEOUT} seconds while fetching Cognito config from {well_known_url}")
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Failed to fetch Cognito config from {well_known_url}: {e}")
 
-def _authenticate_with_cognito(config: Dict[str, str], username: str, password: str) -> str:
+def _authenticate_with_cognito(config: Dict[str, str], username: str, password: str, new_password: Optional[str] = None) -> str:
     """Authenticate with Cognito and handle challenges (MFA, password change)"""
     client = boto3.client("cognito-idp", region_name=config.get("Region", "us-west-2"))
     
@@ -117,7 +169,8 @@ def _authenticate_with_cognito(config: Dict[str, str], username: str, password: 
                 # Allow up to 3 attempts for password change
                 for attempt in range(3):
                     try:
-                        new_password = getpass.getpass("New password required. Enter new password: ")
+                        if not new_password:
+                            new_password = getpass.getpass("New password required. Enter new password: ")
                         resp = client.respond_to_auth_challenge(
                             ClientId=config["UserPoolClientId"],
                             ChallengeName="NEW_PASSWORD_REQUIRED",
@@ -133,6 +186,7 @@ def _authenticate_with_cognito(config: Dict[str, str], username: str, password: 
                         if attempt < 2:  # Don't print error on last attempt
                             print(f"Password change failed: {e}")
                             print("Please try again.")
+                            new_password = None  # Clear the failed password
                         else:
                             raise RuntimeError(f"Failed to set new password after 3 attempts: {e}")
             elif resp["ChallengeName"] in ("SMS_MFA", "SOFTWARE_TOKEN_MFA"):
@@ -190,11 +244,18 @@ def _get_aws_credentials(config: Dict[str, str], id_token: str) -> Dict[str, str
         raise RuntimeError(f"Failed to get AWS credentials: {e}")
 
 if __name__ == "__main__":
-    # When run directly, print current session or error
+    import argparse
+    parser = argparse.ArgumentParser(description="Pennyworth session management")
+    parser.add_argument("--username", help="Cognito username")
+    parser.add_argument("--password", help="Cognito password")
+    parser.add_argument("--new-password", help="New password (if change required)")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose debug logging")
+    args = parser.parse_args()
+    params = {k: v for k, v in vars(args).items() if k in ("username", "password", "new_password", "verbose") and v is not None}
     try:
-        session = get_session()
+        session = get_session(params)
         if session:
-            print("Current session valid until:", session["session_expires"])
+            print("Current session valid until:", session["aws_credentials"]["Expiration"])
             exit(0)
         else:
             print("No valid session")

@@ -84,10 +84,3 @@ Clients ──> API Gateway ──> Lambda (Powertools Routing)
 
 [Optional: S3 for large file transfer]
 ```
-
----
-
-**Next milestone:**
-> [Define your next milestone here.]
-
-This document reflects the current state and priorities for Pennyworth, and is suitable for handoff or further discussion in a new context. 
