@@ -139,6 +139,7 @@ Resources:
       Description: Unified API handler for all Pennyworth endpoints
       MemorySize: 512
       Timeout: 30
+      Tracing: Active
       Environment:
         Variables:
           USER_POOL_ID: !Ref PennyworthUserPool
@@ -152,6 +153,8 @@ Resources:
             - Effect: Allow
               Action:
                 - bedrock:InvokeModel
+                - xray:PutTraceSegments
+                - xray:PutTelemetryRecords
               Resource: '*'
       Events:
         ProxyApi:

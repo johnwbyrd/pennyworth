@@ -5,12 +5,13 @@ import json
 import base64
 import urllib.request
 from jose import jwt
-from utils import logger
+from utils import logger, tracer
 from errors import ForbiddenException
 import boto3
 from botocore.exceptions import ClientError
 
 # --- Robust Bearer Token Extraction Helper ---
+@tracer.capture_method
 def extract_bearer_token(headers):
     """
     Extracts a Bearer token from the Authorization header.
@@ -33,6 +34,7 @@ def extract_bearer_token(headers):
     return token
 
 # --- API Key Authentication ---
+@tracer.capture_method
 def require_api_key_auth(event):
     """
     Centralized API key authentication for all endpoints.
@@ -49,6 +51,7 @@ def require_api_key_auth(event):
 # Cognito JWT validation helpers
 _JWKS = None
 
+@tracer.capture_method
 def get_jwks():
     global _JWKS
     if _JWKS is not None:
@@ -64,6 +67,7 @@ def get_jwks():
         logger.error(f"Failed to fetch or parse JWKS from {jwks_url}: {e}")
         raise Exception(f"Unable to fetch or parse Cognito JWKS: {e}")
 
+@tracer.capture_method
 def require_cognito_jwt(event):
     headers = event.get("headers", {})
     token = extract_bearer_token(headers)
@@ -95,6 +99,7 @@ def require_cognito_jwt(event):
     except Exception as e:
         raise ForbiddenException(f"Invalid or expired Cognito JWT: {e}")
 
+@tracer.capture_method
 def get_user_boto3_session(event):
     """
     Given a Lambda event, extract the Cognito JWT and exchange it for AWS credentials

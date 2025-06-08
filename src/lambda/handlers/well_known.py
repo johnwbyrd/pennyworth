@@ -1,3 +1,6 @@
+from utils import tracer
+
+@tracer.capture_method
 def well_known_handler():
     import os
     return {

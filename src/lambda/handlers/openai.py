@@ -1,8 +1,9 @@
 from model_router import get_model_config
 import litellm
-from utils import logger
+from utils import logger, tracer
 from errors import APIException, BadRequestException
 
+@tracer.capture_method
 def list_models_handler():
     try:
         model_list = [
@@ -14,6 +15,7 @@ def list_models_handler():
         logger.error(f"Error in models: {e}")
         raise APIException(str(e))
 
+@tracer.capture_method
 def chat_completions_handler(body):
     model_name = body.get("model")
     messages = body.get("messages")
@@ -32,6 +34,7 @@ def chat_completions_handler(body):
         logger.error(f"Error in chat/completions: {e}")
         raise APIException(str(e))
 
+@tracer.capture_method
 def completions_handler(body):
     model_name = body.get("model")
     prompt = body.get("prompt")
@@ -50,6 +53,7 @@ def completions_handler(body):
         logger.error(f"Error in completions: {e}")
         raise APIException(str(e))
 
+@tracer.capture_method
 def embeddings_handler(body):
     model_name = body.get("model")
     input_data = body.get("input")
