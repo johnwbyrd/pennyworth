@@ -6,6 +6,7 @@ from errors import ForbiddenException, BadRequestException
 import os
 from aws_lambda_powertools import Tracer
 from utils import logger, tracer
+from src.shared.constants import *
 
 @tracer.capture_method
 def create_user_handler(event):
@@ -26,7 +27,7 @@ def create_user_handler(event):
 
     session = get_user_boto3_session(event.raw_event)
     cognito = session.client("cognito-idp")
-    user_pool_id = os.environ["USER_POOL_ID"]
+    user_pool_id = PENNYWORTH_USER_POOL_ID
 
     try:
         # Create the user

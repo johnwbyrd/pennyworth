@@ -142,12 +142,13 @@ Resources:
       Tracing: Active
       Environment:
         Variables:
-          USER_POOL_ID: !Ref PennyworthUserPool
-          USER_POOL_CLIENT_ID: !Ref PennyworthUserPoolClient
-          IDENTITY_POOL_ID: !Ref PennyworthIdentityPool
+          PENNYWORTH_USER_POOL_ID: !Ref PennyworthUserPool
+          PENNYWORTH_USER_POOL_CLIENT_ID: !Ref PennyworthUserPoolClient
+          PENNYWORTH_IDENTITY_POOL_ID: !Ref PennyworthIdentityPool
           PENNYWORTH_API_VERSION: !Ref PennyworthApiVersion
           PENNYWORTH_API_SEMANTIC_VERSION: !Ref PennyworthApiSemanticVersion
-          GIT_COMMIT: !Ref GitCommit
+          PENNYWORTH_GIT_COMMIT: !Ref GitCommit
+          PENNYWORTH_AWS_REGION: !Ref AWS::Region
       Policies:
         - Statement:
             - Effect: Allow
@@ -267,4 +268,4 @@ Outputs:
     Description: IAM Role ARN for CLI users.
     Value: !GetAtt PennyworthCliUserRole.Arn
     Export:
-      Name: !Sub ${AWS::StackName}-CliUserRoleArn 
+      Name: !Sub ${AWS::StackName}-CliUserRoleArn Outputs

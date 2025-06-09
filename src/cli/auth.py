@@ -4,6 +4,7 @@ import os
 import json
 from typing import Optional
 import getpass
+from src.shared.constants import *
 
 # These will be loaded from the CLI config secret at runtime
 COGNITO_USER_POOL_ID = None

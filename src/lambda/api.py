@@ -29,12 +29,13 @@ from handlers.users import (
     revoke_apikey_handler,
     get_apikey_status_handler,
 )
+from src.shared.constants import *
 
 app = APIGatewayRestResolver()
 
-PENNYWORTH_API_VERSION = os.environ.get("PENNYWORTH_API_VERSION", "v1")
+PENNYWORTH_API_VERSION = PENNYWORTH_API_VERSION
 API_VER = PENNYWORTH_API_VERSION  # Local alias for brevity
-GIT_COMMIT = os.environ.get("GIT_COMMIT", "unknown")
+GIT_COMMIT = PENNYWORTH_GIT_COMMIT
 
 # --- Middleware definitions ---
 def api_key_auth_middleware(app, next_middleware):

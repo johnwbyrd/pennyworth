@@ -8,14 +8,15 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import time
+from src.shared.constants import *
 
 # Session storage configuration
-SESSION_DIR = os.environ.get("PENNYWORTH_SESSION_DIR", os.path.join(os.path.expanduser("~"), ".pennyworth"))
-SESSION_FILE = os.environ.get("PENNYWORTH_SESSION_FILE", "session.json")
+SESSION_DIR = PENNYWORTH_SESSION_DIR
+SESSION_FILE = PENNYWORTH_SESSION_FILE
 
 # API configuration
-API_URL = os.environ.get("PENNYWORTH_API_URL", "https://api.uproro.com")
-API_TIMEOUT = int(os.environ.get("PENNYWORTH_API_TIMEOUT", "15"))  # seconds
+API_URL = PENNYWORTH_API_URL
+API_TIMEOUT = int(PENNYWORTH_API_TIMEOUT)  # seconds
 
 START_TIME = time.time()
 
@@ -141,7 +142,7 @@ def _is_session_expired(session: Dict[str, Any]) -> bool:
 
 def _get_cognito_config() -> Dict[str, str]:
     """Get Cognito configuration from well-known endpoint"""
-    well_known_url = f"{API_URL}/v1/parameters/well-known"
+    well_known_url = f"{API_URL}/parameters/well-known"
     
     try:
         resp = requests.get(well_known_url, timeout=API_TIMEOUT)

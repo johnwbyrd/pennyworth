@@ -2,6 +2,7 @@ from . import get_session
 import sys
 import argparse
 import getpass
+from src.shared.constants import *
 
 def main():
     parser = argparse.ArgumentParser(description="Pennyworth session management")

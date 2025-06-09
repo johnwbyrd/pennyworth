@@ -9,6 +9,7 @@ from utils import logger, tracer
 from errors import ForbiddenException
 import boto3
 from botocore.exceptions import ClientError
+from src.shared.constants import *
 
 # --- Robust Bearer Token Extraction Helper ---
 @tracer.capture_method
@@ -56,8 +57,8 @@ def get_jwks():
     global _JWKS
     if _JWKS is not None:
         return _JWKS
-    region = os.environ["AWS_REGION"]
-    user_pool_id = os.environ["USER_POOL_ID"]
+    region = PENNYWORTH_AWS_REGION
+    user_pool_id = PENNYWORTH_USER_POOL_ID
     jwks_url = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}/.well-known/jwks.json"
     try:
         with urllib.request.urlopen(jwks_url) as resp:
@@ -73,9 +74,9 @@ def require_cognito_jwt(event):
     token = extract_bearer_token(headers)
     if not token:
         raise ForbiddenException("Missing or invalid Authorization header.")
-    region = os.environ.get("AWS_REGION")
-    user_pool_id = os.environ.get("USER_POOL_ID")
-    audience = os.environ.get("USER_POOL_CLIENT_ID")
+    region = PENNYWORTH_AWS_REGION
+    user_pool_id = PENNYWORTH_USER_POOL_ID
+    audience = PENNYWORTH_USER_POOL_CLIENT_ID
     if not region or not user_pool_id or not audience:
         raise ForbiddenException("Cognito JWT validation misconfigured: missing region, user pool ID, or audience.")
     try:
@@ -113,9 +114,9 @@ def get_user_boto3_session(event):
     if not token:
         raise ForbiddenException("Missing or invalid Authorization header.")
 
-    identity_pool_id = os.environ.get("IDENTITY_POOL_ID")
-    region = os.environ.get("AWS_REGION")
-    user_pool_id = os.environ.get("USER_POOL_ID")
+    identity_pool_id = PENNYWORTH_IDENTITY_POOL_ID
+    region = PENNYWORTH_AWS_REGION
+    user_pool_id = PENNYWORTH_USER_POOL_ID
     if not identity_pool_id or not region or not user_pool_id:
         raise ForbiddenException("Missing Cognito Identity Pool configuration.")
 

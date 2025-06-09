@@ -7,12 +7,13 @@ import boto3
 import hashlib
 import secrets
 from .auth import login_flow
+from src.shared.constants import *
 
 app = typer.Typer(help="Pennyworth API Key Management CLI.")
 
 # Global config for stack and region
 cli_config = {
-    "api_url": f"https://api.{os.environ.get('BASE_DOMAIN', 'uproro.com')}",
+    "api_url": PENNYWORTH_API_URL,
 }
 
 # Global option to disable rich/fancy output
@@ -27,7 +28,7 @@ def _set_plain_output(plain: bool):
         os.environ["NO_COLOR"] = "1"
 
 # Fetch config from the well-known endpoint at startup
-well_known_url = f"{cli_config['api_url']}/v1/parameters/well-known"
+well_known_url = f"{cli_config['api_url']}/parameters/well-known"
 try:
     resp = requests.get(well_known_url, timeout=5)
     resp.raise_for_status()
