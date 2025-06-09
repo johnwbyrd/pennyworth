@@ -3,17 +3,18 @@ import litellm
 from utils import logger, tracer
 from errors import APIException, BadRequestException
 
+
 @tracer.capture_method
 def list_models_handler():
     try:
         model_list = [
-            {"id": k, **v}
-            for k, v in get_model_config.__globals__["model_map"].items()
+            {"id": k, **v} for k, v in get_model_config.__globals__["model_map"].items()
         ]
         return {"data": model_list}, 200
     except Exception as e:
         logger.error(f"Error in models: {e}")
         raise APIException(str(e))
+
 
 @tracer.capture_method
 def chat_completions_handler(body):
@@ -27,12 +28,13 @@ def chat_completions_handler(body):
             model=model_config["model_id"],
             messages=messages,
             provider=model_config["provider"],
-            aws_region=None
+            aws_region=None,
         )
         return response, 200
     except Exception as e:
         logger.error(f"Error in chat/completions: {e}")
         raise APIException(str(e))
+
 
 @tracer.capture_method
 def completions_handler(body):
@@ -46,12 +48,13 @@ def completions_handler(body):
             model=model_config["model_id"],
             prompt=prompt,
             provider=model_config["provider"],
-            aws_region=None
+            aws_region=None,
         )
         return response, 200
     except Exception as e:
         logger.error(f"Error in completions: {e}")
         raise APIException(str(e))
+
 
 @tracer.capture_method
 def embeddings_handler(body):
@@ -65,9 +68,9 @@ def embeddings_handler(body):
             model=model_config["model_id"],
             input=input_data,
             provider=model_config["provider"],
-            aws_region=None
+            aws_region=None,
         )
         return response, 200
     except Exception as e:
         logger.error(f"Error in embeddings: {e}")
-        raise APIException(str(e)) 
+        raise APIException(str(e))

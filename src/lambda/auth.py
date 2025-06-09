@@ -11,6 +11,7 @@ import boto3
 from botocore.exceptions import ClientError
 from src.shared.constants import *
 
+
 # --- Robust Bearer Token Extraction Helper ---
 @tracer.capture_method
 def extract_bearer_token(headers):
@@ -34,6 +35,7 @@ def extract_bearer_token(headers):
         return None
     return token
 
+
 # --- API Key Authentication ---
 @tracer.capture_method
 def require_api_key_auth(event):
@@ -49,8 +51,10 @@ def require_api_key_auth(event):
     # TODO: Implement real API key validation (Cognito lookup)
     raise ForbiddenException("Unauthorized: API key validation not implemented.")
 
+
 # Cognito JWT validation helpers
 _JWKS = None
+
 
 @tracer.capture_method
 def get_jwks():
@@ -68,6 +72,7 @@ def get_jwks():
         logger.error(f"Failed to fetch or parse JWKS from {jwks_url}: {e}")
         raise Exception(f"Unable to fetch or parse Cognito JWKS: {e}")
 
+
 @tracer.capture_method
 def require_cognito_jwt(event):
     headers = event.get("headers", {})
@@ -78,7 +83,9 @@ def require_cognito_jwt(event):
     user_pool_id = PENNYWORTH_USER_POOL_ID
     audience = PENNYWORTH_USER_POOL_CLIENT_ID
     if not region or not user_pool_id or not audience:
-        raise ForbiddenException("Cognito JWT validation misconfigured: missing region, user pool ID, or audience.")
+        raise ForbiddenException(
+            "Cognito JWT validation misconfigured: missing region, user pool ID, or audience."
+        )
     try:
         jwks = get_jwks()
         issuer = f"https://cognito-idp.{region}.amazonaws.com/{user_pool_id}"
@@ -99,6 +106,7 @@ def require_cognito_jwt(event):
         return claims
     except Exception as e:
         raise ForbiddenException(f"Invalid or expired Cognito JWT: {e}")
+
 
 @tracer.capture_method
 def get_user_boto3_session(event):
@@ -124,12 +132,12 @@ def get_user_boto3_session(event):
     try:
         resp = cognito_identity.get_id(
             IdentityPoolId=identity_pool_id,
-            Logins={f'cognito-idp.{region}.amazonaws.com/{user_pool_id}': token}
+            Logins={f"cognito-idp.{region}.amazonaws.com/{user_pool_id}": token},
         )
         identity_id = resp["IdentityId"]
         creds_resp = cognito_identity.get_credentials_for_identity(
             IdentityId=identity_id,
-            Logins={f'cognito-idp.{region}.amazonaws.com/{user_pool_id}': token}
+            Logins={f"cognito-idp.{region}.amazonaws.com/{user_pool_id}": token},
         )
         creds = creds_resp["Credentials"]
     except ClientError as e:
@@ -139,5 +147,5 @@ def get_user_boto3_session(event):
         aws_access_key_id=creds["AccessKeyId"],
         aws_secret_access_key=creds["SecretKey"],
         aws_session_token=creds["SessionToken"],
-        region_name=region
-    ) 
+        region_name=region,
+    )

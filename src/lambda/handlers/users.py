@@ -8,6 +8,7 @@ from aws_lambda_powertools import Tracer
 from utils import logger, tracer
 from src.shared.constants import *
 
+
 @tracer.capture_method
 def create_user_handler(event):
     """
@@ -46,13 +47,11 @@ def create_user_handler(event):
             UserPoolId=user_pool_id,
             Username=username,
             Password=password,
-            Permanent=True
+            Permanent=True,
         )
         # Always add to group (group is always set)
         cognito.admin_add_user_to_group(
-            UserPoolId=user_pool_id,
-            Username=username,
-            GroupName=group
+            UserPoolId=user_pool_id, Username=username, GroupName=group
         )
         return {"username": username, "status": "CREATED"}, 201
     except cognito.exceptions.UsernameExistsException:
@@ -61,31 +60,38 @@ def create_user_handler(event):
         # If the user lacks permission, this will be a ForbiddenException
         raise ForbiddenException(str(e))
 
+
 @tracer.capture_method
 def get_user_handler(event, user_id):
     raise NotImplementedException(f"Not implemented: get_user {user_id}")
+
 
 @tracer.capture_method
 def update_user_handler(event, user_id):
     body = event.json_body or {}
     raise NotImplementedException(f"Not implemented: update_user {user_id}")
 
+
 @tracer.capture_method
 def delete_user_handler(event, user_id):
     raise NotImplementedException(f"Not implemented: delete_user {user_id}")
+
 
 @tracer.capture_method
 def list_users_handler(event):
     raise NotImplementedException("Not implemented: list_users")
 
+
 @tracer.capture_method
 def create_or_rotate_apikey_handler(event, user_id):
     raise NotImplementedException(f"Not implemented: create_or_rotate_apikey {user_id}")
+
 
 @tracer.capture_method
 def revoke_apikey_handler(event, user_id):
     raise NotImplementedException(f"Not implemented: revoke_apikey {user_id}")
 
+
 @tracer.capture_method
 def get_apikey_status_handler(event, user_id):
-    raise NotImplementedException(f"Not implemented: get_apikey_status {user_id}") 
+    raise NotImplementedException(f"Not implemented: get_apikey_status {user_id}")
