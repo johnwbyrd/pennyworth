@@ -128,4 +128,6 @@ Clients ──> API Gateway ──> Lambda (Powertools Routing)
 
 ---
 
-This overview reflects the actual, current state of Pennyworth: a secure, serverless, OpenAI-compatible API proxy with all user and key management via Cognito and REST, robust observability, and modern CI/CD. 
+This overview reflects the actual, current state of Pennyworth: a secure, serverless, OpenAI-compatible API proxy with all user and key management via Cognito and REST, robust observability, and modern CI/CD.
+
+See the [README](../README.md) for details on environment variable naming and configuration conventions. 

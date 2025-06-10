@@ -58,4 +58,9 @@ Clients ──> API Gateway ──> Lambda (Powertools Routing)
 
 ---
 
-This architecture is designed to be robust, cost-effective, and easy to maintain, while supporting advanced use cases for developer productivity tools. All key management is performed via REST API endpoints and Cognito, with no DynamoDB or LiteLLM built-in key management. The CLI is a pure REST client and never stores or displays plaintext API keys after creation. 
+This architecture is designed to be robust, cost-effective, and easy to maintain, while supporting advanced use cases for developer productivity tools. All key management is performed via REST API endpoints and Cognito, with no DynamoDB or LiteLLM built-in key management. The CLI is a pure REST client and never stores or displays plaintext API keys after creation.
+
+See the [README](../README.md) for details on environment variable naming and configuration conventions.
+
+- All project-specific environment variables are prefixed with `PENNYWORTH_` (e.g., `PENNYWORTH_BASE_DOMAIN`, `PENNYWORTH_API_URL`, etc.).
+- All configuration constants are centralized in `src/shared/constants/__init__.py`. 

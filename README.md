@@ -39,4 +39,4 @@ This project is licensed under the GNU Affero General Public License v3.0 only. 
 - **Closed-source forks and proprietary versions of this project are not permitted.**
 - **Selling a closed-source or proprietary service based on this code is outside the scope of this license and is not allowed.**
 - **If you build a service or product using this code, you must provide your users with access to the complete, corresponding source code under the same AGPL 3.0 license.**
-- For more information, see the [GNU AGPL v3.0 FAQ](https://www.gnu.org/licenses/agpl-3.0-faq.html). 
+- For more information, see the [GNU AGPL v3.0 FAQ](https://www.gnu.org/licenses/agpl-3.0-faq.html).

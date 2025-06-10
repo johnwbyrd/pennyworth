@@ -9,7 +9,7 @@ This guide describes how to deploy **Pennyworth** (the LiteLLM-based OpenAI-comp
 - Node.js 18+ (for local packaging, if needed)
 - (Optional) AWS SAM CLI for infrastructure-as-code
 - A GitHub repository where you can run Actions
-- Route 53 hosted zone for your domain (BASE_DOMAIN) in your chosen region
+- Route 53 hosted zone for your domain (PENNYWORTH_BASE_DOMAIN) in your chosen region
 
 ## Required GitHub Repository Secrets
 
@@ -29,14 +29,14 @@ The following secrets **must** be set in your GitHub repository (Settings → Se
   - Choose your AWS region (e.g., `us-west-2`, `us-east-1`).
 - **Format:** AWS region code (e.g., `us-west-2`)
 
-### 3. `BASE_DOMAIN`
+### 3. `PENNYWORTH_BASE_DOMAIN`
 - **What:** The base domain for your API (e.g., `example.com`). Used to create the custom API Gateway domain (e.g., `api.example.com`).
 - **How to obtain:**
   - Register your domain and set up a Route 53 hosted zone for it.
 - **Format:** Domain name (e.g., `example.com`)
 
 ### 4. `ROUTE53_HOSTED_ZONE_ID`
-- **What:** The ID of your Route 53 hosted zone for `BASE_DOMAIN`.
+- **What:** The ID of your Route 53 hosted zone for `PENNYWORTH_BASE_DOMAIN`.
 - **How to obtain:**
   - In AWS Console → Route 53 → Hosted zones, find your domain and copy the Hosted Zone ID (e.g., `Z1234567890ABC`).
 - **Format:** Hosted zone ID string (e.g., `Z1234567890ABC`)
@@ -44,7 +44,7 @@ The following secrets **must** be set in your GitHub repository (Settings → Se
 ### 5. `ACM_CERTIFICATE_ARN`
 - **What:** The ARN of the ACM certificate for your custom domain (must be in the same region as API Gateway).
 - **How to obtain:**
-  - In AWS Console → Certificate Manager (ACM), request or import a certificate for `api.<BASE_DOMAIN>` (DNS validation recommended).
+  - In AWS Console → Certificate Manager (ACM), request or import a certificate for `api.<PENNYWORTH_BASE_DOMAIN>` (DNS validation recommended).
   - After validation, copy the certificate ARN (e.g., `arn:aws:acm:us-west-2:123456789012:certificate/abcdefg-1234-5678-90ab-cdef12345678`).
 - **Format:** `arn:aws:acm:<REGION>:<ACCOUNT_ID>:certificate/<UUID>`
 
@@ -380,9 +380,9 @@ Example policy patterns:
 ## Route 53 and Custom Domain Setup
 
 - The SAM/CloudFormation template should:
-  - Create an API Gateway custom domain for `api.${BASE_DOMAIN}` in your chosen region
+  - Create an API Gateway custom domain for `api.${PENNYWORTH_BASE_DOMAIN}` in your chosen region
   - Reference an ACM certificate for the domain in your chosen region
-  - Create/update a Route 53 record to point `api.${BASE_DOMAIN}` to the API Gateway custom domain
+  - Create/update a Route 53 record to point `api.${PENNYWORTH_BASE_DOMAIN}` to the API Gateway custom domain
 
 ## Best Practices
 

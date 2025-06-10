@@ -48,6 +48,9 @@ Pennyworth uses Amazon Cognito and REST API endpoints for all authentication and
 ## 5. Secrets Management
 - No secrets (API keys, credentials) are ever hardcoded in code or configuration files.
 - All configuration is via environment variables and Cognito; never hardcoded.
+- See the [README](../README.md) for details on environment variable naming and configuration conventions.
+- All project-specific environment variables are prefixed with `PENNYWORTH_` (e.g., `PENNYWORTH_BASE_DOMAIN`, `PENNYWORTH_API_URL`, etc.).
+- All configuration constants are centralized in `src/shared/constants/__init__.py`.
 
 ---
 

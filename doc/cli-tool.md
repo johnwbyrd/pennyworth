@@ -202,4 +202,8 @@ To develop or run the Pennyworth CLI tool locally, follow these steps:
 
 For more information on CLI usage and options, see the rest of this document.
 
-For questions or contributions, see the project documentation or contact the maintainers. 
+For questions or contributions, see the project documentation or contact the maintainers.
+
+## Configuration
+
+See the [README](../README.md) for details on environment variable naming and configuration conventions. 

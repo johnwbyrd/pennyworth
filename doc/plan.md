@@ -14,6 +14,9 @@ Pennyworth is a serverless, OpenAI-compatible API proxy for AWS Bedrock (and oth
 - **Logging & Tracing:** Uses AWS Lambda Powertools logger and tracer, instantiated in `src/lambda/utils.py` and imported where needed. X-Ray is enabled for all handlers.
 - **Consistent Endpoint Versioning:** All endpoints are under `/v1` for future-proofing and clarity.
 - **Environment Variables:** All configuration is via environment variables, with no secrets in code.
+- See the [README](../README.md) for details on environment variable naming and configuration conventions.
+- All project-specific environment variables are prefixed with `PENNYWORTH_` (e.g., `PENNYWORTH_BASE_DOMAIN`, `PENNYWORTH_API_URL`, etc.).
+- All configuration constants are centralized in `src/shared/constants/__init__.py`.
 
 ### Infrastructure
 - **API Gateway:** Routes all `/v1/*` traffic to the Lambda function.
