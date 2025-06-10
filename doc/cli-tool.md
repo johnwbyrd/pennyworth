@@ -17,7 +17,7 @@ A Python command-line tool for secure management of API keys in the Pennyworth s
 - **All output (except errors) is to stdout for easy redirection.**
 
 ## Requirements
-- Python 3.8+
+- Python 3.11+
 - requests (HTTP client)
 - Typer (CLI framework)
 
@@ -197,13 +197,3 @@ To develop or run the Pennyworth CLI tool locally, follow these steps:
    ```bash
    deactivate
    ```
-
----
-
-For more information on CLI usage and options, see the rest of this document.
-
-For questions or contributions, see the project documentation or contact the maintainers.
-
-## Configuration
-
-See the [README](../README.md) for details on environment variable naming and configuration conventions. 
